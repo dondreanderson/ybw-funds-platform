@@ -1,14 +1,13 @@
 import './globals.css'
-import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
-import { Providers } from '@/components/providers'
-import { Toaster } from 'sonner'
+import { Providers } from './providers'
+import { Toaster } from 'react-hot-toast'
 
 const inter = Inter({ subsets: ['latin'] })
 
-export const metadata: Metadata = {
+export const metadata = {
   title: 'YBW Funds - Business Credit & Funding Platform',
-  description: 'Enhance your business fundability with real-time credit insights and funding access.',
+  description: 'Improve your business fundability and access credit with our comprehensive platform.',
 }
 
 export default function RootLayout({
