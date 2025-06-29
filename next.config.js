@@ -1,16 +1,53 @@
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
     appDir: true,
   },
   images: {
-    domains: ['images.unsplash.com', 'ui-avatars.com'],
+    domains: [
+      'localhost',
+      'your-domain.com',
+      'your-project-url.supabase.co',
+    ],
   },
   env: {
-    NEXTAUTH_URL: process.env.NEXTAUTH_URL,
-    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
-    SUPABASE_URL: process.env.SUPABASE_URL,
-    SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY,
-    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    CUSTOM_PORT: '3500',
+  },
+  // Configure for production deployment
+  output: 'standalone',
+  
+  // Security headers
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'origin-when-cross-origin',
+          },
+        ],
+      },
+    ]
+  },
+  
+  // Redirects for SEO
+  async redirects() {
+    return [
+      {
+        source: '/home',
+        destination: '/',
+        permanent: true,
+      },
+    ]
   },
 }
 
