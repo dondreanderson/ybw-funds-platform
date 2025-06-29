@@ -1,13 +1,12 @@
 import './globals.css'
 import { Inter } from 'next/font/google'
-import { Providers } from './providers'
-import { Toaster } from 'react-hot-toast'
+import Providers from './providers'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata = {
-  title: 'YBW Funds - Business Credit & Funding Platform',
-  description: 'Improve your business fundability and access credit with our comprehensive platform.',
+  title: 'YBW Funds Platform',
+  description: 'Business Credit & Funding Platform',
 }
 
 export default function RootLayout({
@@ -16,14 +15,12 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    
-      
-        
+    <html lang="en">
+      <body className={inter.className}>
+        <Providers>
           {children}
-          
-        
-      
-
-    
+        </Providers>
+      </body>
+    </html>
   )
 }
