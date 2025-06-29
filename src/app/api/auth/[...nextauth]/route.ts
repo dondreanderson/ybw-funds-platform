@@ -43,7 +43,8 @@ const handler = NextAuth({
       return token
     },
     async session({ session, token }) {
-      if (token) {
+      // Fix the TypeScript error by checking if session.user exists
+      if (token && session.user) {
         session.user.id = token.id as string
       }
       return session
