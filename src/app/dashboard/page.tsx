@@ -1,9 +1,18 @@
 'use client'
 
-import { useSession } from 'next-auth/react'
+import { useState } from 'react'
+import SimpleFundabilityCalculator from '../../components/SimpleFundabilityCalculator'
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
 
 export default function Dashboard() {
-  const { data: session } = useSession()
+  const [showCalculator, setShowCalculator] = useState(false)
+  const [fundabilityScore, setFundabilityScore] = useState(75)
+
+  const handleScoreUpdate = (newScore: number) => {
+    setFundabilityScore(newScore)
+  }
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -14,7 +23,7 @@ export default function Dashboard() {
           </h1>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Fundability Score */}
+            {/* Fundability Score - Now Dynamic! */}
             <div className="bg-white overflow-hidden shadow rounded-lg">
               <div className="p-5">
                 <div className="flex items-center">
@@ -29,7 +38,7 @@ export default function Dashboard() {
                         Fundability Score
                       </dt>
                       <dd className="text-lg font-medium text-gray-900">
-                        75/100
+                        {fundabilityScore}/100
                       </dd>
                     </dl>
                   </div>
@@ -95,12 +104,22 @@ export default function Dashboard() {
                     Your business credit and funding platform is ready to help you access the capital you need.
                   </p>
                 </div>
-                <div className="mt-5">
+                <div className="mt-5 flex gap-3">
                   <button
                     type="button"
+                    onClick={() => {
+                      console.log('Button clicked!') // Debug log
+                      setShowCalculator(true)
+                    }}
                     className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
                   >
-                    Start Credit Scan
+                    📊 Calculate Fundability Score
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
+                  >
+                    🔍 Explore Funding Options
                   </button>
                 </div>
               </div>
@@ -108,6 +127,14 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Calculator Modal */}
+      {showCalculator && (
+        <SimpleFundabilityCalculator 
+          onClose={() => setShowCalculator(false)}
+          onScoreUpdate={handleScoreUpdate}
+        />
+      )}
     </div>
   )
 }
