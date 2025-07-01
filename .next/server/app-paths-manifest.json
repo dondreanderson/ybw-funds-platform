@@ -1,4 +1,10 @@
 {
-  "/dashboard/page": "app/dashboard/page.js",
-  "/api/fundability/save-assessment/route": "app/api/fundability/save-assessment/route.js"
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/fundability/save-assessment/route": "app/api/fundability/save-assessment/route.js",
+  "/api/fundability/assessment/route": "app/api/fundability/assessment/route.js",
+  "/api/fundability/criteria/route": "app/api/fundability/criteria/route.js",
+  "/page": "app/page.js",
+  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
+  "/auth/signin/page": "app/auth/signin/page.js",
+  "/dashboard/page": "app/dashboard/page.js"
 }
