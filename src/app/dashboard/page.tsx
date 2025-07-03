@@ -2,13 +2,15 @@
 
 import { useState } from 'react'
 import SimpleFundabilityCalculator from '../../components/SimpleFundabilityCalculator'
+import AdvancedFundabilityCalculator from '../../components/AdvancedFundabilityCalculator'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
 
 export default function Dashboard() {
-  const [showCalculator, setShowCalculator] = useState(false)
-  const [fundabilityScore, setFundabilityScore] = useState(75)
+  const [showSimpleCalculator, setShowSimpleCalculator] = useState(false)
+  const [showAdvancedCalculator, setShowAdvancedCalculator] = useState(false)
+  const [fundabilityScore, setFundabilityScore] = useState(58) // Updated to match your current score
 
   const handleScoreUpdate = (newScore: number) => {
     setFundabilityScore(newScore)
@@ -23,7 +25,7 @@ export default function Dashboard() {
           </h1>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Fundability Score - Now Dynamic! */}
+            {/* Fundability Score */}
             <div className="bg-white overflow-hidden shadow rounded-lg">
               <div className="p-5">
                 <div className="flex items-center">
@@ -97,26 +99,37 @@ export default function Dashboard() {
             <div className="bg-white shadow rounded-lg">
               <div className="px-4 py-5 sm:p-6">
                 <h3 className="text-lg leading-6 font-medium text-gray-900">
-                  Welcome to YBW Funds Platform
+                  Fundability Assessment Tools
                 </h3>
                 <div className="mt-2 max-w-xl text-sm text-gray-500">
                   <p>
-                    Your business credit and funding platform is ready to help you access the capital you need.
+                    Choose the assessment type that best fits your needs. Get actionable insights to improve your business fundability.
                   </p>
                 </div>
-                <div className="mt-5 flex gap-3">
+                <div className="mt-5 flex flex-col gap-3 sm:flex-row">
                   <button
                     type="button"
                     onClick={() => {
-                      console.log('Button clicked!') // Debug log
-                      setShowCalculator(true)
+                      console.log('Quick Assessment clicked!')
+                      setShowSimpleCalculator(true)
                     }}
                     className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
                   >
-                    📊 Calculate Fundability Score
+                    ⚡ Quick Assessment (6 questions)
                   </button>
                   <button
                     type="button"
+                    onClick={() => {
+                      console.log('Advanced Assessment clicked!')
+                      setShowAdvancedCalculator(true)
+                    }}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700"
+                  >
+                    🎯 Advanced Assessment (125+ criteria)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => alert('Funding explorer coming soon!')}
                     className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
                   >
                     🔍 Explore Funding Options
@@ -128,10 +141,18 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Calculator Modal */}
-      {showCalculator && (
+      {/* Simple Calculator Modal */}
+      {showSimpleCalculator && (
         <SimpleFundabilityCalculator 
-          onClose={() => setShowCalculator(false)}
+          onClose={() => setShowSimpleCalculator(false)}
+          onScoreUpdate={handleScoreUpdate}
+        />
+      )}
+
+      {/* Advanced Calculator Modal */}
+      {showAdvancedCalculator && (
+        <AdvancedFundabilityCalculator 
+          onClose={() => setShowAdvancedCalculator(false)}
           onScoreUpdate={handleScoreUpdate}
         />
       )}
