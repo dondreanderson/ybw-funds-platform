@@ -43,11 +43,27 @@ export default function AnalyticsSection() {
     { name: 'Legal', value: 85, color: '#8b5cf6' }
   ];
 
+  // Fix: Create render functions instead of storing components directly
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'overview':
+        return <CategoryRadarChart data={radarData} key="overview" />;
+      case 'trends':
+        return <ScoreTrendChart data={trendData} key="trends" />;
+      case 'comparison':
+        return <CategoryBarChart data={barData} key="comparison" />;
+      case 'progress':
+        return <ProgressRingChart data={progressData} key="progress" />;
+      default:
+        return <CategoryRadarChart data={radarData} key="default" />;
+    }
+  };
+
   const tabs = [
-    { id: 'overview', label: 'Overview', component: <CategoryRadarChart data={radarData} /> },
-    { id: 'trends', label: 'Trends', component: <ScoreTrendChart data={trendData} /> },
-    { id: 'comparison', label: 'Comparison', component: <CategoryBarChart data={barData} /> },
-    { id: 'progress', label: 'Progress', component: <ProgressRingChart data={progressData} /> }
+    { id: 'overview', label: 'Overview' },
+    { id: 'trends', label: 'Trends' },
+    { id: 'comparison', label: 'Comparison' },
+    { id: 'progress', label: 'Progress' }
   ];
 
   return (
@@ -66,8 +82,12 @@ export default function AnalyticsSection() {
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              type="button"
+              onClick={() => {
+                console.log(`Switching to tab: ${tab.id}`); // Debug log
+                setActiveTab(tab.id);
+              }}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                 activeTab === tab.id
                   ? 'bg-blue-500 text-white shadow-sm'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -80,7 +100,15 @@ export default function AnalyticsSection() {
       </div>
 
       <div className="h-80">
-        {tabs.find(tab => tab.id === activeTab)?.component}
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3 }}
+          className="w-full h-full"
+        >
+          {renderTabContent()}
+        </motion.div>
       </div>
     </motion.div>
   );
