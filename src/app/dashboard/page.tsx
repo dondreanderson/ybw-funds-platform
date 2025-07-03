@@ -1,28 +1,39 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import SimpleFundabilityCalculator from '../../components/SimpleFundabilityCalculator'
-import AdvancedFundabilityCalculator from '../../components/AdvancedFundabilityCalculator'
+import { useState } from 'react';
+import EnhancedDashboard from '@/components/dashboard/EnhancedDashboard';
+import SimpleFundabilityCalculator from '@/components/SimpleFundabilityCalculator';
+import AdvancedFundabilityCalculator from '@/components/AdvancedFundabilityCalculator';
 
 // Force dynamic rendering
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 
-export default function Dashboard() {
-  const [showSimpleCalculator, setShowSimpleCalculator] = useState(false)
-  const [showAdvancedCalculator, setShowAdvancedCalculator] = useState(false)
-  const [fundabilityScore, setFundabilityScore] = useState(58) // Updated to match your current score
+export default function DashboardPage() {
+  const [showSimpleCalculator, setShowSimpleCalculator] = useState(false);
+  const [showAdvancedCalculator, setShowAdvancedCalculator] = useState(false);
+  const [fundabilityScore, setFundabilityScore] = useState(58);
+  const [viewMode, setViewMode] = useState<'enhanced' | 'classic'>('enhanced');
 
   const handleScoreUpdate = (newScore: number) => {
-    setFundabilityScore(newScore)
-  }
+    setFundabilityScore(newScore);
+  };
 
-  return (
+  // Classic Dashboard Component (your existing one)
+  const ClassicDashboard = () => (
     <div className="min-h-screen bg-gray-100">
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
-          <h1 className="text-3xl font-bold text-gray-900 mb-8">
-            YBW Funds Dashboard
-          </h1>
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-900">
+              YBW Funds Dashboard
+            </h1>
+            <button
+              onClick={() => setViewMode('enhanced')}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              Switch to Enhanced View
+            </button>
+          </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Fundability Score */}
@@ -110,8 +121,8 @@ export default function Dashboard() {
                   <button
                     type="button"
                     onClick={() => {
-                      console.log('Quick Assessment clicked!')
-                      setShowSimpleCalculator(true)
+                      console.log('Quick Assessment clicked!');
+                      setShowSimpleCalculator(true);
                     }}
                     className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
                   >
@@ -120,8 +131,8 @@ export default function Dashboard() {
                   <button
                     type="button"
                     onClick={() => {
-                      console.log('Advanced Assessment clicked!')
-                      setShowAdvancedCalculator(true)
+                      console.log('Advanced Assessment clicked!');
+                      setShowAdvancedCalculator(true);
                     }}
                     className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700"
                   >
@@ -140,6 +151,26 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+    </div>
+  );
+
+  return (
+    <>
+      {viewMode === 'enhanced' ? (
+        <div className="relative">
+          <div className="absolute top-4 right-4 z-10">
+            <button
+              onClick={() => setViewMode('classic')}
+              className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors shadow-lg"
+            >
+              Switch to Classic View
+            </button>
+          </div>
+          <EnhancedDashboard />
+        </div>
+      ) : (
+        <ClassicDashboard />
+      )}
 
       {/* Simple Calculator Modal */}
       {showSimpleCalculator && (
@@ -156,6 +187,6 @@ export default function Dashboard() {
           onScoreUpdate={handleScoreUpdate}
         />
       )}
-    </div>
-  )
+    </>
+  );
 }
