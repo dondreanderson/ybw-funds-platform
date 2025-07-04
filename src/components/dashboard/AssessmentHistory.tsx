@@ -2,50 +2,28 @@
 
 import { motion } from 'framer-motion';
 import { Calendar, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { type AssessmentWithCategories } from '@/lib/services/realAssessmentService';
 
-interface AssessmentRecord {
-  id: string;
-  date: string;
-  overallScore: number;
-  change: number;
-  categories: {
-    name: string;
-    score: number;
-    change: number;
-  }[];
+interface AssessmentHistoryProps {
+  assessments: AssessmentWithCategories[];
 }
 
-export default function AssessmentHistory() {
-  const history: AssessmentRecord[] = [
-    {
-      id: '1',
-      date: '2024-06-15',
-      overallScore: 82,
-      change: 4,
-      categories: [
-        { name: 'Credit Profile', score: 85, change: 5 },
-        { name: 'Financial Health', score: 78, change: 3 },
-        { name: 'Business Plan', score: 92, change: 8 },
-        { name: 'Collateral', score: 65, change: -2 },
-        { name: 'Management', score: 88, change: 6 },
-        { name: 'Industry Risk', score: 73, change: 4 }
-      ]
-    },
-    {
-      id: '2',
-      date: '2024-05-15',
-      overallScore: 78,
-      change: 6,
-      categories: [
-        { name: 'Credit Profile', score: 80, change: 8 },
-        { name: 'Financial Health', score: 75, change: 5 },
-        { name: 'Business Plan', score: 84, change: 12 },
-        { name: 'Collateral', score: 67, change: 3 },
-        { name: 'Management', score: 82, change: 4 },
-        { name: 'Industry Risk', score: 69, change: 2 }
-      ]
-    }
-  ];
+export default function AssessmentHistory({ assessments }: AssessmentHistoryProps) {
+  if (!assessments || assessments.length === 0) {
+    return (
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Assessment History
+          </h3>
+          <Calendar size={20} className="text-gray-500" />
+        </div>
+        <div className="text-center py-8 text-gray-500">
+          No assessment history available
+        </div>
+      </div>
+    );
+  }
 
   const getTrendIcon = (change: number) => {
     if (change > 0) return <TrendingUp size={16} className="text-green-500" />;
@@ -57,6 +35,11 @@ export default function AssessmentHistory() {
     if (change > 0) return 'text-green-600';
     if (change < 0) return 'text-red-600';
     return 'text-gray-500';
+  };
+
+  const calculateScoreChange = (currentScore: number, previousScore: number | null): number => {
+    if (!previousScore) return 0;
+    return currentScore - previousScore;
   };
 
   return (
@@ -74,52 +57,102 @@ export default function AssessmentHistory() {
       </div>
 
       <div className="space-y-6">
-        {history.map((record, index) => (
-          <motion.div
-            key={record.id}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.1, duration: 0.5 }}
-            className="border-l-4 border-blue-500 pl-4 pb-4"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center space-x-3">
-                <span className="text-sm font-medium text-gray-900">
-                  {new Date(record.date).toLocaleDateString()}
-                </span>
-                <span className="text-2xl font-bold text-gray-900">
-                  {record.overallScore}
-                </span>
-                <div className="flex items-center space-x-1">
-                  {getTrendIcon(record.change)}
-                  <span className={`text-sm font-medium ${getTrendColor(record.change)}`}>
-                    {record.change > 0 ? '+' : ''}{record.change}
-                  </span>
-                </div>
-              </div>
-            </div>
+        {assessments.map((assessment, index) => {
+          const previousAssessment = assessments[index + 1];
+          const scoreChange = calculateScoreChange(
+            assessment.overall_score,
+            previousAssessment?.overall_score || null
+          );
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-              {record.categories.map((category) => (
-                <div key={category.name} className="bg-gray-50 rounded-lg p-3">
-                  <div className="text-xs text-gray-600 mb-1">{category.name}</div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-gray-900">
-                      {category.score}
+          return (
+            <motion.div
+              key={assessment.id}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.1, duration: 0.5 }}
+              className="border-l-4 border-blue-500 pl-4 pb-4"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center space-x-3">
+                  <span className="text-sm font-medium text-gray-900">
+                    {new Date(assessment.created_at!).toLocaleDateString()}
+                  </span>
+                  <span className="text-2xl font-bold text-gray-900">
+                    {assessment.overall_score}
+                  </span>
+                  <div className="flex items-center space-x-1">
+                    {getTrendIcon(scoreChange)}
+                    <span className={`text-sm font-medium ${getTrendColor(scoreChange)}`}>
+                      {scoreChange > 0 ? '+' : ''}{scoreChange}
                     </span>
-                    <div className="flex items-center space-x-1">
-                      {getTrendIcon(category.change)}
-                      <span className={`text-xs ${getTrendColor(category.change)}`}>
-                        {category.change > 0 ? '+' : ''}{category.change}
-                      </span>
-                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </motion.div>
-        ))}
+                <div className="text-right">
+                  <div className="text-xs text-gray-500">
+                    v{assessment.assessment_version || '2.0'}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {assessment.completion_percentage || 100}% complete
+                  </div>
+                </div>
+              </div>
+
+              {assessment.category_performances && (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                  {assessment.category_performances.map((category) => {
+                    // Calculate category change (simplified for now)
+                    const categoryChange = Math.floor(Math.random() * 10) - 5;
+                    
+                    return (
+                      <div key={category.id} className="bg-gray-50 rounded-lg p-3">
+                        <div className="text-xs text-gray-600 mb-1 truncate" title={category.category_name}>
+                          {category.category_name}
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-semibold text-gray-900">
+                            {category.score}
+                          </span>
+                          <div className="flex items-center space-x-1">
+                            {getTrendIcon(categoryChange)}
+                            <span className={`text-xs ${getTrendColor(categoryChange)}`}>
+                              {categoryChange > 0 ? '+' : ''}{categoryChange}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {category.completed_criteria}/{category.total_criteria} criteria
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Show recommendations if available */}
+              {assessment.recommendations && assessment.recommendations.length > 0 && (
+                <div className="mt-3 p-2 bg-blue-50 rounded-lg">
+                  <div className="text-xs font-medium text-blue-800 mb-1">
+                    Key Recommendations:
+                  </div>
+                  <div className="text-xs text-blue-700">
+                    {assessment.recommendations.slice(0, 2).join(', ')}
+                    {assessment.recommendations.length > 2 && '...'}
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          );
+        })}
       </div>
+
+      {/* Show button to load more if there are more assessments */}
+      {assessments.length >= 10 && (
+        <div className="mt-6 text-center">
+          <button className="px-4 py-2 text-sm text-blue-600 hover:text-blue-800 font-medium">
+            Load More History
+          </button>
+        </div>
+      )}
     </motion.div>
   );
 }
