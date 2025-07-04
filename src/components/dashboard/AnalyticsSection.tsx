@@ -1,61 +1,67 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 import CategoryRadarChart from '../charts/CategoryRadarChart';
 import ScoreTrendChart from '../charts/ScoreTrendChart';
 import CategoryBarChart from '../charts/CategoryBarChart';
 import ProgressRingChart from '../charts/ProgressRingChart';
+import { realAssessmentService, type AssessmentWithCategories, type ScoreHistory } from '@/lib/services/realAssessmentService';
 
-export default function AnalyticsSection() {
+interface AnalyticsSectionProps {
+  assessment: AssessmentWithCategories | null;
+  history: AssessmentWithCategories[];
+}
+
+export default function AnalyticsSection({ assessment, history }: AnalyticsSectionProps) {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
+  const [scoreHistory, setScoreHistory] = useState<ScoreHistory[]>([]);
 
-  const radarData = [
-    { category: 'Credit Profile', score: 85, fullMark: 100 },
-    { category: 'Financial Health', score: 78, fullMark: 100 },
-    { category: 'Business Plan', score: 92, fullMark: 100 },
-    { category: 'Collateral', score: 65, fullMark: 100 },
-    { category: 'Management', score: 88, fullMark: 100 },
-    { category: 'Industry Risk', score: 73, fullMark: 100 }
-  ];
+  useEffect(() => {
+    if (user) {
+      realAssessmentService.getScoreHistory(user.id).then(setScoreHistory);
+    }
+  }, [user]);
 
-  const trendData = [
-    { date: 'Jan', score: 65 },
-    { date: 'Feb', score: 68 },
-    { date: 'Mar', score: 72 },
-    { date: 'Apr', score: 75 },
-    { date: 'May', score: 78 },
-    { date: 'Jun', score: 82 }
-  ];
+  if (!assessment) {
+    return (
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          Analytics Overview
+        </h3>
+        <div className="text-center py-8 text-gray-500">
+          No assessment data available for analytics
+        </div>
+      </div>
+    );
+  }
 
-  const barData = [
-    { category: 'Credit Profile', score: 85, benchmark: 75 },
-    { category: 'Financial Health', score: 78, benchmark: 80 },
-    { category: 'Business Plan', score: 92, benchmark: 85 },
-    { category: 'Collateral', score: 65, benchmark: 70 },
-    { category: 'Management', score: 88, benchmark: 82 },
-    { category: 'Industry Risk', score: 73, benchmark: 78 }
-  ];
+  const { categoryData } = realAssessmentService.transformToChartData(assessment);
+  const trendData = realAssessmentService.transformToTrendData(scoreHistory);
+  const comparisonData = realAssessmentService.transformToComparisonData(assessment);
 
-  const progressData = [
-    { name: 'Documentation', value: 92, color: '#10b981' },
-    { name: 'Financial', value: 78, color: '#3b82f6' },
-    { name: 'Legal', value: 85, color: '#8b5cf6' }
-  ];
+  // Create progress data from category performances
+  const progressData = assessment.category_performances?.slice(0, 3).map(perf => ({
+    name: perf.category_name,
+    value: Math.round((perf.score / perf.max_score) * 100),
+    color: realAssessmentService['getCategoryColor'](perf.category_name) || '#3b82f6'
+  })) || [];
 
   // Fix: Create render functions instead of storing components directly
   const renderTabContent = () => {
     switch (activeTab) {
       case 'overview':
-        return <CategoryRadarChart data={radarData} key="overview" />;
+        return <CategoryRadarChart data={categoryData} key="overview" />;
       case 'trends':
         return <ScoreTrendChart data={trendData} key="trends" />;
       case 'comparison':
-        return <CategoryBarChart data={barData} key="comparison" />;
+        return <CategoryBarChart data={comparisonData} key="comparison" />;
       case 'progress':
         return <ProgressRingChart data={progressData} key="progress" />;
       default:
-        return <CategoryRadarChart data={radarData} key="default" />;
+        return <CategoryRadarChart data={categoryData} key="default" />;
     }
   };
 
@@ -84,7 +90,7 @@ export default function AnalyticsSection() {
               key={tab.id}
               type="button"
               onClick={() => {
-                console.log(`Switching to tab: ${tab.id}`); // Debug log
+                console.log(`Switching to tab: ${tab.id}`);
                 setActiveTab(tab.id);
               }}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
@@ -109,6 +115,28 @@ export default function AnalyticsSection() {
         >
           {renderTabContent()}
         </motion.div>
+      </div>
+
+      {/* Assessment Info */}
+      <div className="mt-4 pt-4 border-t border-gray-100">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+          <div>
+            <span className="text-gray-500">Categories:</span>
+            <span className="ml-1 font-medium">{assessment.category_performances?.length || 0}</span>
+          </div>
+          <div>
+            <span className="text-gray-500">Completion:</span>
+            <span className="ml-1 font-medium">{assessment.completion_percentage || 100}%</span>
+          </div>
+          <div>
+            <span className="text-gray-500">Time:</span>
+            <span className="ml-1 font-medium">{assessment.completion_time_minutes || 'N/A'} min</span>
+          </div>
+          <div>
+            <span className="text-gray-500">Status:</span>
+            <span className="ml-1 font-medium capitalize">{assessment.status || 'completed'}</span>
+          </div>
+        </div>
       </div>
     </motion.div>
   );

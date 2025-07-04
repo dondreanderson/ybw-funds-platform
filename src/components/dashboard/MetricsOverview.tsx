@@ -4,52 +4,44 @@ import { motion } from 'framer-motion';
 import { TrendingUp, DollarSign, FileText, Shield, Users, Building } from 'lucide-react';
 import MetricCard from '../charts/MetricCard';
 import FundabilityScoreGauge from '../charts/FundabilityScoreGauge';
+import { realAssessmentService, type AssessmentWithCategories } from '@/lib/services/realAssessmentService';
 
-export default function MetricsOverview() {
-  const metrics = [
-    {
-      title: 'Credit Profile',
-      value: '85',
-      change: 12,
-      icon: TrendingUp,
-      color: '#10b981'
-    },
-    {
-      title: 'Financial Health',
-      value: '78',
-      change: 8,
-      icon: DollarSign,
-      color: '#3b82f6'
-    },
-    {
-      title: 'Documentation',
-      value: '92',
-      change: 15,
-      icon: FileText,
-      color: '#8b5cf6'
-    },
-    {
-      title: 'Collateral',
-      value: '65',
-      change: -3,
-      icon: Shield,
-      color: '#f59e0b'
-    },
-    {
-      title: 'Management',
-      value: '88',
-      change: 6,
-      icon: Users,
-      color: '#ef4444'
-    },
-    {
-      title: 'Industry Risk',
-      value: '73',
-      change: 4,
-      icon: Building,
-      color: '#06b6d4'
-    }
-  ];
+interface MetricsOverviewProps {
+  assessment: AssessmentWithCategories | null;
+}
+
+export default function MetricsOverview({ assessment }: MetricsOverviewProps) {
+  if (!assessment) {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-3 text-center py-8 text-gray-500">
+          No assessment data available
+        </div>
+      </div>
+    );
+  }
+
+  const { categoryData, overallScore, metrics } = realAssessmentService.transformToChartData(assessment);
+
+  // Map categories to icons
+  const iconMap = {
+    'Business Registration': TrendingUp,
+    'Credit Profile': DollarSign,
+    'Financial Documentation': FileText,
+    'Operational Infrastructure': Shield,
+    'Online Presence': Users,
+    'Risk & Compliance': Building,
+    'Credit': DollarSign,
+    'Financial': FileText,
+    'Business Plan': TrendingUp,
+    'Collateral': Shield,
+    'Management': Users,
+    'Industry': Building
+  };
+
+  const getIcon = (title: string) => {
+    return iconMap[title as keyof typeof iconMap] || TrendingUp;
+  };
 
   return (
     <motion.div
@@ -65,14 +57,22 @@ export default function MetricsOverview() {
             Overall Fundability Score
           </h3>
           <div className="flex justify-center">
-            <FundabilityScoreGauge score={82} size={180} />
+            <FundabilityScoreGauge score={overallScore} size={180} />
+          </div>
+          <div className="mt-4 text-center">
+            <div className="text-sm text-gray-600">
+              Assessment Version: {assessment.assessment_version || '2.0'}
+            </div>
+            <div className="text-sm text-gray-600">
+              Completion: {assessment.completion_percentage || 100}%
+            </div>
           </div>
         </div>
       </div>
 
       {/* Metrics Grid */}
       <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-        {metrics.map((metric, index) => (
+        {metrics.slice(0, 6).map((metric, index) => (
           <motion.div
             key={metric.title}
             initial={{ opacity: 0, x: 20 }}
@@ -83,7 +83,7 @@ export default function MetricsOverview() {
               title={metric.title}
               value={metric.value}
               change={metric.change}
-              icon={metric.icon}
+              icon={getIcon(metric.title)}
               color={metric.color}
             />
           </motion.div>

@@ -1,15 +1,45 @@
 {
   "pages": {
-    "/dashboard/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/page.js"
+    "/_not-found/page": [
+      "static/chunks/webpack-02761f80ef09b837.js",
+      "static/chunks/fd9d1056-9a3a850f665ca2e3.js",
+      "static/chunks/117-7c1ea1bcf3996f92.js",
+      "static/chunks/main-app-41a2e4d603bb8967.js",
+      "static/chunks/app/_not-found/page-38fac4fed1541b55.js"
     ],
     "/layout": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/css/app/layout.css",
-      "static/chunks/app/layout.js"
+      "static/chunks/webpack-02761f80ef09b837.js",
+      "static/chunks/fd9d1056-9a3a850f665ca2e3.js",
+      "static/chunks/117-7c1ea1bcf3996f92.js",
+      "static/chunks/main-app-41a2e4d603bb8967.js",
+      "static/css/aeec6e8ac27b1cf9.css",
+      "static/chunks/605-15837521c03c38b9.js",
+      "static/chunks/app/layout-b3c87e0f2380efab.js"
+    ],
+    "/auth/signin/page": [
+      "static/chunks/webpack-02761f80ef09b837.js",
+      "static/chunks/fd9d1056-9a3a850f665ca2e3.js",
+      "static/chunks/117-7c1ea1bcf3996f92.js",
+      "static/chunks/main-app-41a2e4d603bb8967.js",
+      "static/chunks/605-15837521c03c38b9.js",
+      "static/chunks/app/auth/signin/page-709c311fb64e1bdb.js"
+    ],
+    "/page": [
+      "static/chunks/webpack-02761f80ef09b837.js",
+      "static/chunks/fd9d1056-9a3a850f665ca2e3.js",
+      "static/chunks/117-7c1ea1bcf3996f92.js",
+      "static/chunks/main-app-41a2e4d603bb8967.js",
+      "static/chunks/605-15837521c03c38b9.js",
+      "static/chunks/app/page-8cd13540581b3c36.js"
+    ],
+    "/dashboard/page": [
+      "static/chunks/webpack-02761f80ef09b837.js",
+      "static/chunks/fd9d1056-9a3a850f665ca2e3.js",
+      "static/chunks/117-7c1ea1bcf3996f92.js",
+      "static/chunks/main-app-41a2e4d603bb8967.js",
+      "static/chunks/605-15837521c03c38b9.js",
+      "static/chunks/269-28176bb1ed2bbc74.js",
+      "static/chunks/app/dashboard/page-3c319f8d159765af.js"
     ]
   }
 }
