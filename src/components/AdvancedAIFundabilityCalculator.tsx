@@ -23,12 +23,6 @@ const supabase = createClient(
 );
 
 // TypeScript interfaces
-interface User {
-  id: string;
-  email?: string;
-  name?: string;
-}
-
 interface CategoryResponse {
   categoryId: string;
   questionId: string;
