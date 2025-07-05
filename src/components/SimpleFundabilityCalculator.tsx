@@ -23,6 +23,7 @@ export default function SimpleFundabilityCalculator({ onClose, onScoreUpdate }: 
   const [score, setScore] = useState(0)
   const [showResults, setShowResults] = useState(false)
   const [isCalculating, setIsCalculating] = useState(false)
+  const [loading, setLoading] = useState<boolean>(false);
 
   const calculateScore = () => {
     setIsCalculating(true)

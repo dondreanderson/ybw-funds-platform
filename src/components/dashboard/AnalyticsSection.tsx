@@ -18,6 +18,7 @@ export default function AnalyticsSection({ assessment, history }: AnalyticsSecti
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [scoreHistory, setScoreHistory] = useState<ScoreHistory[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
     if (user) {
