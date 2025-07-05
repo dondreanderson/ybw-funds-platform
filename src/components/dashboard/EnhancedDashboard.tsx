@@ -1,3 +1,4 @@
+import { User, AssessmentData, APIResponse } from "@/types/common";
 'use client';
 
 import { motion } from 'framer-motion';
@@ -28,20 +29,20 @@ export default function EnhancedDashboard({ className = '' }: EnhancedDashboardP
       const { data: latestAssessment } = await supabase 
       .from('advanced_fundability_assessments') 
       .select('*') 
-      .eq('user_id', userId) 
+      .eq('user?.id ?? ""', userId) 
       .order('created_at', { ascending: false }) 
       .limit(1) 
       .single(); // Fetch score history from existing table 
       
       const { data: scoreHistory } = await supabase 
       .from('score_history') 
-      .select('*') .eq('user_id', userId) 
+      .select('*') .eq('user?.id ?? ""', userId) 
       .order('assessment_date', { ascending: true }); // Fetch business profile from existing table 
       
       const { data: businessProfile } = await supabase 
       .from('business_profiles') 
       .select('*') 
-      .eq('user_id', userId) 
+      .eq('user?.id ?? ""', userId) 
       .single(); setDashboardData({ latestAssessment, 
         scoreHistory, 
         businessProfile 
@@ -62,7 +63,7 @@ export default function EnhancedDashboard({ className = '' }: EnhancedDashboardP
         setError(null);
 
         // Use email as ID for our test users
-        const userIdentifier = user.email || user.id;
+        const userIdentifier = user.email || user?.id ?? "";
 
         // Add timeout for the entire operation
         const timeoutPromise = new Promise((_, reject) => 
@@ -87,7 +88,7 @@ export default function EnhancedDashboard({ className = '' }: EnhancedDashboardP
         // Set fallback data to prevent total failure
         const fallbackAssessment = {
           id: 'fallback',
-          user_id: user.email || user.id,
+          user?.id ?? "": user.email || user?.id ?? "",
           overall_score: user.fundability_score || 75,
           category_scores: {},
           created_at: new Date().toISOString(),

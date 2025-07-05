@@ -1,3 +1,4 @@
+import { User, AssessmentData, APIResponse } from "@/types/common";
 'use client'
 
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts'

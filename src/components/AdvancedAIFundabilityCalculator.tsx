@@ -1,3 +1,4 @@
+import { User, AssessmentData, APIResponse } from "@/types/common";
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -379,7 +380,7 @@ const AdvancedAIFundabilityCalculator: React.FC = () => {
       // Save category responses in batch
       await BatchResponseService.saveBatchResponses({
         assessmentId: currentAssessmentId,
-        userId: user.id,
+        userId: user?.id ?? "",
         responses: categoryResponses,
         category: currentCategory.id
       });
@@ -496,7 +497,7 @@ const AdvancedAIFundabilityCalculator: React.FC = () => {
         .from('advanced_fundability_assessments')
         .insert({
           id: currentAssessmentId,
-          user_id: user?.id,
+          user?.id ?? "": user?.id,
           overall_score: overallScore,
           category_scores: categoryScores,
           completion_percentage: 100,

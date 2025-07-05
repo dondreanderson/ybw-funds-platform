@@ -1,3 +1,4 @@
+import { User, AssessmentData, APIResponse } from "@/types/common";
 'use client'
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'

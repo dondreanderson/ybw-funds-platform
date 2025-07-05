@@ -1,3 +1,4 @@
+import { User, AssessmentData, APIResponse } from "@/types/common";
 'use client';
 
 import { motion } from 'framer-motion';
@@ -22,7 +23,7 @@ export default function AnalyticsSection({ assessment, history }: AnalyticsSecti
 
   useEffect(() => {
     if (user) {
-      realAssessmentService.getScoreHistory(user.id).then(setScoreHistory);
+      realAssessmentService.getScoreHistory(user?.id ?? "").then(setScoreHistory);
     }
   }, [user]);
 

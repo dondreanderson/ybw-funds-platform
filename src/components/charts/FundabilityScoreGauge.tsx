@@ -1,3 +1,4 @@
+import { User, AssessmentData, APIResponse } from "@/types/common";
 'use client'
 
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
