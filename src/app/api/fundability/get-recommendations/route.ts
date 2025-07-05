@@ -359,27 +359,29 @@ function adjustTimeframeForNewBusiness(timeframe: string) {
 
 function generateIndustryContext(recommendation: any, industryBenchmark: any) {
   // Generate contextual information based on industry benchmarks
-  const categoryMapping = {
-    'business_registration': 'avg_business_registration',
-    'credit_profile': 'avg_credit_profile',
-    'financial_documentation': 'avg_financial_documentation',
-    'operational_infrastructure': 'avg_operational_infrastructure',
-    'online_presence': 'avg_online_presence',
-    'risk_compliance': 'avg_risk_compliance'
-  }
+  const categoryMapping: Record<string, string> = {
+  business_registration: 'business_registration',
+  credit_profile: 'credit_profile', 
+  financial_documentation: 'financial_documentation',
+  operational_infrastructure: 'operational_infrastructure',
+  online_presence: 'online_presence',
+  risk_compliance: 'risk_compliance'
+};
 
-  const industryField = categoryMapping[recommendation.category_id]
-  if (industryField && industryBenchmark[industryField]) {
-    const industryAvg = industryBenchmark[industryField]
-    return {
+const categoryId = String(recommendation.category_id);
+const industryField = categoryMapping[categoryId];
+  
+  if (industryField && industryBenchmark && industryBenchmark[industryField as keyof typeof industryBenchmark]) {
+  const industryAvg = industryBenchmark[industryField as keyof typeof industryBenchmark];
+  return {
+    ...recommendation,
+    industry_comparison: {
       industry_average: industryAvg,
-      percentile_targets: {
-        good: industryBenchmark.percentile_50,
-        excellent: industryBenchmark.percentile_75,
-        top_tier: industryBenchmark.percentile_90
-      }
+      user_score: userScore,
+      percentile_rank: calculatePercentile(userScore, industryAvg)
     }
-  }
+  };
+}
 
   return null
 }
