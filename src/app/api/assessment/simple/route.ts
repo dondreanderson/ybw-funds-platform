@@ -1,83 +1,104 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const supabase = createRouteHandlerClient({ cookies });
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
     }
 
-    const body = await request.json()
-    const { answers, businessData } = body
+    const body = await request.json();
+    const { assessmentData } = body;
 
-    // Calculate simple assessment score
-    let totalScore = 0
-    const maxScore = 100
+    if (!assessmentData) {
+      return NextResponse.json(
+        { error: 'Assessment data is required' },
+        { status: 400 }
+      );
+    }
 
-    // Simple scoring algorithm
-    if (answers.hasEIN) totalScore += 15
-    if (answers.hasBusinessBank) totalScore += 15
-    if (answers.hasBusinessPhone) totalScore += 10
-    if (answers.hasWebsite) totalScore += 10
-    if (answers.hasBusinessAddress) totalScore += 10
-    if (answers.hasBusinessCredit) totalScore += 20
-
-    // Business age scoring
-    if (answers.businessAge >= 24) totalScore += 15
-    else if (answers.businessAge >= 12) totalScore += 10
-    else if (answers.businessAge >= 6) totalScore += 5
-
-    // Additional factors
-    if (answers.hasRevenue) totalScore += 3
-    if (answers.hasEmployees) totalScore += 2
-
-    // Save to fundability_assessments table
-    const { data: assessment, error } = await supabase
+    // Save simple assessment to database
+    const { data, error } = await supabase
       .from('fundability_assessments')
-      .insert({
-        user_id: user.id,
-        business_name: businessData.businessName || 'Not provided',
-        criteria_scores: answers,
-        score: totalScore,
-        recommendations: generateSimpleRecommendations(answers),
-        status: 'completed',
-        assessment_data: { answers, businessData, calculatedAt: new Date().toISOString() }
-      })
+      .insert([
+        {
+          user_id: user.id,
+          business_name: assessmentData.businessName || 'Unknown Business',
+          criteria_scores: assessmentData.criteriaScores || {},
+          score: assessmentData.score || 0,
+          recommendations: assessmentData.recommendations || 'No recommendations available',
+          status: 'completed',
+          assessment_data: assessmentData
+        }
+      ])
       .select()
-      .single()
+      .single();
 
-    if (error) throw error
-
-    // Generate recommendations
-    const recommendations = generateSimpleRecommendations(answers)
+    if (error) {
+      console.error('Database error:', error);
+      return NextResponse.json(
+        { error: 'Failed to save assessment' },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
-      assessment,
-      score: totalScore,
-      maxScore,
-      percentage: Math.round((totalScore / maxScore) * 100),
-      recommendations
-    })
+      success: true,
+      data: data
+    });
 
   } catch (error) {
-    console.error('Simple assessment error:', error)
+    console.error('API error:', error);
     return NextResponse.json(
-      { error: 'Failed to process simple assessment' },
+      { error: 'Internal server error' },
       { status: 500 }
-    )
+    );
   }
 }
 
-function generateSimpleRecommendations(answers: any): string[] {
-  const recommendations = []
-  
-  if (!answers.hasEIN) recommendations.push('Obtain an EIN (Employer Identification Number)')
-  if (!answers.hasBusinessBank) recommendations.push('Open a dedicated business bank account')
-  if (!answers.hasBusinessPhone) recommendations.push('Set up a business phone line')
-  if (!answers.hasWebsite) recommendations.push('Create a professional business website')
-  if (!answers.hasBusinessAddress) recommendations.push('Establish a business address')
-  if (!answers.hasBusinessCredit) recommendations.push('Start building business credit')
-  if (answers.businessAge < 12) recommendations.push('Build business operating history')
-  
-  return recommendations
+export async function GET(request: NextRequest) {
+  try {
+    const supabase = createRouteHandlerClient({ cookies });
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const { data, error } = await supabase
+      .from('fundability_assessments')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Database error:', error);
+      return NextResponse.json(
+        { error: 'Failed to retrieve assessments' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: data
+    });
+
+  } catch (error) {
+    console.error('API error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
 }
