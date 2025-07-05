@@ -1,49 +1,48 @@
-'use client';
+'use client'
 
-import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from 'recharts';
-import { motion } from 'framer-motion';
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts'
 
 interface CategoryData {
-  category: string;
-  score: number;
-  fullMark: number;
+  category: string
+  score: number
+  fullMark: 100
 }
 
 interface CategoryRadarChartProps {
-  data: CategoryData[];
-  className?: string;
+  data?: CategoryData[]
 }
 
-export default function CategoryRadarChart({ data, className = '' }: CategoryRadarChartProps) {
+export default function CategoryRadarChart({ data }: CategoryRadarChartProps) {
+  const defaultData = [
+    { category: 'Business Registration', score: 85, fullMark: 100 },
+    { category: 'Credit Profile', score: 70, fullMark: 100 },
+    { category: 'Financial Documentation', score: 75, fullMark: 100 },
+    { category: 'Operations', score: 80, fullMark: 100 },
+    { category: 'Online Presence', score: 65, fullMark: 100 },
+    { category: 'Risk Compliance', score: 90, fullMark: 100 }
+  ]
+
+  const chartData = data || defaultData
+
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.8 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.5 }}
-      className={`w-full h-80 ${className}`}
-    >
-      <ResponsiveContainer width="100%" height="100%">
-        <RadarChart data={data}>
-          <PolarGrid gridType="polygon" />
-          <PolarAngleAxis 
-            dataKey="category" 
-            tick={{ fontSize: 12, fill: '#6b7280' }}
-          />
-          <PolarRadiusAxis
-            angle={90}
-            domain={[0, 100]}
-            tick={{ fontSize: 10, fill: '#9ca3af' }}
-          />
-          <Radar
-            name="Score"
-            dataKey="score"
-            stroke="#3b82f6"
-            fill="#3b82f6"
-            fillOpacity={0.3}
-            strokeWidth={2}
-          />
-        </RadarChart>
-      </ResponsiveContainer>
-    </motion.div>
-  );
+    <ResponsiveContainer width="100%" height={300}>
+      <RadarChart data={chartData}>
+        <PolarGrid />
+        <PolarAngleAxis dataKey="category" tick={{ fontSize: 12 }} />
+        <PolarRadiusAxis 
+          angle={90} 
+          domain={[0, 100]} 
+          tick={{ fontSize: 10 }}
+        />
+        <Radar
+          name="Score"
+          dataKey="score"
+          stroke="#8B5CF6"
+          fill="#8B5CF6"
+          fillOpacity={0.3}
+          strokeWidth={2}
+        />
+      </RadarChart>
+    </ResponsiveContainer>
+  )
 }

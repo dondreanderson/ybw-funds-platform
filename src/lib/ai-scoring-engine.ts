@@ -68,6 +68,23 @@ export interface Recommendation {
   cost: 'free' | 'low' | 'medium' | 'high';
 }
 
+export const calculateIndustryBenchmarkScore = async ( 
+    userScore: number, 
+    industry: string, 
+    businessSize: string ) => 
+        { const { data: benchmark } = await supabase 
+    .from('industry_benchmarks') 
+    .select('*') 
+    .eq('industry_name', industry) 
+    .eq('business_size', businessSize) 
+    .single(); if (!benchmark) 
+        return null; 
+    return { percentile: calculatePercentile(userScore, benchmark), 
+        industryAverage: benchmark.avg_total_score, 
+        comparison: userScore > benchmark.avg_total_score ? 'above' : 'below' 
+    }; 
+}; 
+
 export class AIFundabilityScoringEngine {
   private criteria: CriterionData[] = [];
 
@@ -84,7 +101,7 @@ export class AIFundabilityScoringEngine {
       assessmentData.businessType,
       assessmentData.industry
     );
-
+    
     // Calculate category scores with AI weighting
     const categoryScores = this.calculateCategoryScores(
       relevantCriteria,
