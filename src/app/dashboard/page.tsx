@@ -218,6 +218,4 @@ export default function DashboardPage(): JSX.Element {
     </div>
   );
 }
-
 // Export the page component for Next.js App Router
-export { DashboardPage };
