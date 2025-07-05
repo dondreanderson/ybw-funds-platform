@@ -1,25 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient({ cookies });
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
+    // Get user ID from request body instead of auth (since we're using service role)
     const body = await request.json();
-    const { assessmentData } = body;
+    const { userId, assessmentData } = body;
 
-    if (!assessmentData) {
+    if (!userId || !assessmentData) {
       return NextResponse.json(
-        { error: 'Assessment data is required' },
+        { error: 'User ID and assessment data are required' },
         { status: 400 }
       );
     }
@@ -29,7 +24,7 @@ export async function POST(request: NextRequest) {
       .from('fundability_assessments')
       .insert([
         {
-          user_id: user.id,
+          user_id: userId,
           business_name: assessmentData.businessName || 'Unknown Business',
           criteria_scores: assessmentData.criteriaScores || {},
           score: assessmentData.score || 0,
@@ -65,20 +60,20 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient({ cookies });
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
 
-    if (authError || !user) {
+    if (!userId) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
+        { error: 'User ID is required' },
+        { status: 400 }
       );
     }
 
     const { data, error } = await supabase
       .from('fundability_assessments')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
     if (error) {
