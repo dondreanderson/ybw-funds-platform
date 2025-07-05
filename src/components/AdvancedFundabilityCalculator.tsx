@@ -76,6 +76,7 @@ const AdvancedFundabilityCalculator: React.FC = () => {
   });
   const [result, setResult] = useState<FundabilityResult | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
 
   // Form categories configuration
   const categories: Category[] = [
