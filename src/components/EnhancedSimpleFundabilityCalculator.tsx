@@ -1,3 +1,4 @@
+import { User, AssessmentData, APIResponse } from "@/types/common";
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -28,7 +29,7 @@ const EnhancedSimpleFundabilityCalculator: React.FC = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: 'current-user-id', // Replace with actual user ID
+          userId: 'current-user?.id ?? ""', // Replace with actual user ID
           assessmentData: {
             responses,
             score: calculateTotalScore(responses),

@@ -1,3 +1,4 @@
+import { User, AssessmentData, APIResponse } from "@/types/common";
 'use client';
 
 import { useState } from 'react';
@@ -130,7 +131,7 @@ export default function EnhancedSimpleCalculator({
       };
 
       const assessmentData: AssessmentData = {
-        userId: user.id,
+        userId: user?.id ?? "",
         businessType: responses.years_in_business >= 2 ? 'established' : 'startup',
         industry: 'general', // Could be enhanced with industry question
         yearsInBusiness: responses.years_in_business || 0,
