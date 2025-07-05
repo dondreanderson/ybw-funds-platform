@@ -21,6 +21,36 @@ export default function EnhancedDashboard({ className = '' }: EnhancedDashboardP
   const [assessmentHistory, setAssessmentHistory] = useState<AssessmentWithCategories[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const useDashboardData = (userId: string) => { 
+    const [dashboardData, setDashboardData] = useState(null); 
+    useEffect(() => { 
+      const fetchDashboardData = async () => { // Fetch latest assessment from existing table 
+      const { data: latestAssessment } = await supabase 
+      .from('advanced_fundability_assessments') 
+      .select('*') 
+      .eq('user_id', userId) 
+      .order('created_at', { ascending: false }) 
+      .limit(1) 
+      .single(); // Fetch score history from existing table 
+      
+      const { data: scoreHistory } = await supabase 
+      .from('score_history') 
+      .select('*') .eq('user_id', userId) 
+      .order('assessment_date', { ascending: true }); // Fetch business profile from existing table 
+      
+      const { data: businessProfile } = await supabase 
+      .from('business_profiles') 
+      .select('*') 
+      .eq('user_id', userId) 
+      .single(); setDashboardData({ latestAssessment, 
+        scoreHistory, 
+        businessProfile 
+      }); 
+    }; fetchDashboardData(); 
+  }, [userId]); 
+  return dashboardData; 
+}; 
+
 
   useEffect(() => {
     if (!user || authLoading) return;

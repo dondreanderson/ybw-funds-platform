@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useSession } from 'next-auth/react'
 
 interface CalculatorProps {
   onClose: () => void
@@ -9,7 +8,6 @@ interface CalculatorProps {
 }
 
 export default function SimpleFundabilityCalculator({ onClose, onScoreUpdate }: CalculatorProps) {
-  const { data: session } = useSession()
   const [answers, setAnswers] = useState({
     hasEIN: false,
     hasBusinessBank: false,
@@ -24,33 +22,45 @@ export default function SimpleFundabilityCalculator({ onClose, onScoreUpdate }: 
   })
   const [score, setScore] = useState(0)
   const [showResults, setShowResults] = useState(false)
+  const [isCalculating, setIsCalculating] = useState(false)
 
   const calculateScore = () => {
-    let totalScore = 0
+    setIsCalculating(true)
     
-    // Basic Business Setup (40 points)
-    if (answers.hasEIN) totalScore += 8
-    if (answers.hasBusinessBank) totalScore += 8
-    if (answers.hasBusinessPhone) totalScore += 6
-    if (answers.hasWebsite) totalScore += 6
-    if (answers.hasBusinessAddress) totalScore += 6
-    if (answers.hasInsurance) totalScore += 6
-    
-    // Business Maturity (30 points)
-    if (answers.businessAge >= 24) totalScore += 15
-    else if (answers.businessAge >= 12) totalScore += 10
-    else if (answers.businessAge >= 6) totalScore += 5
-    
-    if (answers.hasRevenue) totalScore += 10
-    if (answers.hasEmployees) totalScore += 5
-    
-    // Credit Profile (30 points)
-    if (answers.hasBusinessCredit) totalScore += 30
-    else totalScore += 10 // Starting credit profile
-    
-    setScore(totalScore)
-    setShowResults(true)
-    onScoreUpdate(totalScore)
+    try {
+      let totalScore = 0
+      
+      // Basic Business Setup (40 points)
+      if (answers.hasEIN) totalScore += 8
+      if (answers.hasBusinessBank) totalScore += 8
+      if (answers.hasBusinessPhone) totalScore += 6
+      if (answers.hasWebsite) totalScore += 6
+      if (answers.hasBusinessAddress) totalScore += 6
+      if (answers.hasInsurance) totalScore += 6
+      
+      // Business Maturity (30 points)
+      if (answers.businessAge >= 24) totalScore += 15
+      else if (answers.businessAge >= 12) totalScore += 10
+      else if (answers.businessAge >= 6) totalScore += 5
+      
+      if (answers.hasRevenue) totalScore += 10
+      if (answers.hasEmployees) totalScore += 5
+      
+      // Credit Profile (30 points)
+      if (answers.hasBusinessCredit) totalScore += 30
+      else totalScore += 10 // Starting credit profile
+      
+      const finalScore = Math.min(totalScore, 100) // Cap at 100
+      
+      setScore(finalScore)
+      setShowResults(true)
+      onScoreUpdate(finalScore)
+    } catch (error) {
+      console.error('Error calculating score:', error)
+      alert('Error calculating score. Please try again.')
+    } finally {
+      setIsCalculating(false)
+    }
   }
 
   const getRecommendations = () => {
@@ -69,25 +79,27 @@ export default function SimpleFundabilityCalculator({ onClose, onScoreUpdate }: 
   }
 
   const saveAssessment = async () => {
-    if (!session?.user?.id) return
-    
     try {
-      const response = await fetch('/api/fundability/save-assessment', {
+      const response = await fetch('/api/fundability/save-simple', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           score,
           answers,
-          recommendations: getRecommendations()
+          recommendations: getRecommendations(),
+          assessment_type: 'simple'
         })
       })
       
       if (response.ok) {
         alert('Assessment saved successfully!')
         onClose()
+      } else {
+        throw new Error('Failed to save assessment')
       }
     } catch (error) {
       console.error('Error saving assessment:', error)
+      alert('Error saving assessment. Please try again.')
     }
   }
 
@@ -307,9 +319,10 @@ export default function SimpleFundabilityCalculator({ onClose, onScoreUpdate }: 
         <div className="mt-6 flex gap-3">
           <button
             onClick={calculateScore}
-            className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700"
+            disabled={isCalculating}
+            className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50"
           >
-            Calculate My Score
+            {isCalculating ? 'Calculating...' : 'Calculate My Score'}
           </button>
           <button
             onClick={onClose}

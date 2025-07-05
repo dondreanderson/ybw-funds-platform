@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { aiScoringEngine, type AssessmentData } from '@/lib/ai-scoring-engine'
 
 export interface AssessmentWithCategories {
   id: string
