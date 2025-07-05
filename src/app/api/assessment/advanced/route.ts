@@ -41,12 +41,6 @@ interface AssessmentResult {
   industryComparison?: any;
 }
 
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 // Helper function to calculate percentile
 function calculatePercentile(score: number, benchmarks: any): number {
   if (score >= benchmarks.percentile_90) return 90;
