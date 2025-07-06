@@ -1,123 +1,140 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
-import { aiScoringEngine, type AssessmentData } from '@/lib/ai-scoring-engine';
+import { createClient } from '@supabase/supabase-js';
+import { AIScoringEngine } from '@/lib/ai-scoring-engine';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+interface AssessmentRequest {
+  userId: string;
+  responses: Record<string, any>;
+  assessmentType?: string;
+  industry?: string;
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const assessmentData: AssessmentData = await request.json();
+    const body: AssessmentRequest = await request.json();
+    
+    if (!body.userId || !body.responses) {
+      return NextResponse.json(
+        { error: 'Missing required fields: userId and responses' },
+        { status: 400 }
+      );
+    }
 
-    // Validate required fields
-    if (!assessmentData.userId) {
+    // Calculate advanced score using AI scoring engine
+    const scoringResult = await AIScoringEngine.calculateAdvancedScore(body.responses);
+
+    // Get industry comparison if industry is provided
+    let industryComparison = null;
+    if (body.industry) {
+      industryComparison = await AIScoringEngine.getIndustryComparison(
+        scoringResult.overallScore,
+        body.industry
+      );
+    }
+
+    // Generate recommendations
+    const recommendations = await AIScoringEngine.generateRecommendations(
+      scoringResult.categoryScores,
+      body.industry
+    );
+
+    // Save assessment to database
+    const assessmentData = {
+      user_id: body.userId,
+      overall_score: scoringResult.overallScore,
+      category_scores: scoringResult.categoryScores,
+      completion_percentage: 100,
+      recommendations: recommendations,
+      improvement_areas: scoringResult.improvements,
+      strengths: scoringResult.strengths,
+      industry_comparison: industryComparison,
+      assessment_date: new Date().toISOString(),
+      assessment_version: '3.0',
+      status: 'completed',
+      metadata: {
+        assessment_type: body.assessmentType || 'advanced',
+        industry: body.industry,
+        responses: body.responses
+      }
+    };
+
+    const { data, error } = await supabase
+      .from('advanced_fundability_assessments')
+      .insert([assessmentData])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Database error:', error);
+      return NextResponse.json(
+        { error: 'Failed to save assessment' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        id: data.id,
+        overallScore: scoringResult.overallScore,
+        categoryScores: scoringResult.categoryScores,
+        recommendations: recommendations,
+        strengths: scoringResult.strengths,
+        improvements: scoringResult.improvements,
+        industryComparison: industryComparison
+      }
+    });
+
+  } catch (error) {
+    console.error('Assessment calculation error:', error);
+    return NextResponse.json(
+      { error: 'Failed to calculate assessment' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+
+    if (!userId) {
       return NextResponse.json(
         { error: 'User ID is required' },
         { status: 400 }
       );
     }
 
-    // Calculate AI-driven fundability score
-    const scoringResult = await aiScoringEngine.calculateFundabilityScore(assessmentData);
-
-    // Save to database
-    const { data: assessment, error: assessmentError } = await supabase
+    const { data, error } = await supabase
       .from('advanced_fundability_assessments')
-      .insert({
-        user_id: assessmentData.userId,
-        overall_score: Math.round(scoringResult.percentage),
-        category_scores: scoringResult.categoryScores.reduce((acc, cat) => {
-          acc[cat.category.toLowerCase().replace(/\s+/g, '_')] = Math.round(cat.percentage);
-          return acc;
-        }, {} as Record<string, number>),
-        completion_percentage: 100,
-        assessment_version: '3.0',
-        status: 'completed',
-        recommendations: scoringResult.recommendations,
-        improvement_areas: scoringResult.recommendations
-          .filter(r => r.priority === 'critical' || r.priority === 'high')
-          .map(r => r.title),
-        strengths: scoringResult.categoryScores
-          .filter(c => c.percentage >= 80)
-          .map(c => c.category),
-        metadata: {
-          fundabilityGrade: scoringResult.fundabilityGrade,
-          improvementPotential: scoringResult.improvementPotential,
-          assessmentType: 'ai_driven',
-          businessType: assessmentData.businessType,
-          industry: assessmentData.industry
-        }
-      })
-      .select()
-      .single();
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(10);
 
-    if (assessmentError) throw assessmentError;
-
-    // Save category performances
-    const categoryInserts = scoringResult.categoryScores.map((cat, index) => ({
-      assessment_id: assessment.id,
-      category_id: `cat_${index + 1}`,
-      category_name: cat.category,
-      score: Math.round(cat.percentage),
-      max_score: 100,
-      completed_criteria: cat.completedCriteria,
-      total_criteria: cat.totalCriteria,
-      answers: assessmentData.responses
-    }));
-
-    const { error: categoryError } = await supabase
-      .from('category_performances')
-      .insert(categoryInserts);
-
-    if (categoryError) {
-      console.error('Error saving categories:', categoryError);
-      // Continue despite category error
-    }
-
-    // Save to score history
-    const { error: historyError } = await supabase
-      .from('score_history')
-      .insert({
-        user_id: assessmentData.userId,
-        assessment_id: assessment.id,
-        overall_score: Math.round(scoringResult.percentage),
-        category_scores: scoringResult.categoryScores.reduce((acc, cat) => {
-          acc[cat.category] = Math.round(cat.percentage);
-          return acc;
-        }, {} as Record<string, number>),
-        assessment_date: new Date().toISOString().split('T')[0],
-        score_change: 0 // Calculate from previous assessment
-      });
-
-    if (historyError) {
-      console.error('Error saving history:', historyError);
-      // Continue despite history error
-    }
-
-    // Update user's fundability score
-    const { error: userError } = await supabase
-      .from('users')
-      .update({ 
-        fundability_score: Math.round(scoringResult.percentage),
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', assessmentData.userId);
-
-    if (userError) {
-      console.error('Error updating user score:', userError);
-      // Continue despite user update error
+    if (error) {
+      console.error('Database error:', error);
+      return NextResponse.json(
+        { error: 'Failed to retrieve assessments' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
       success: true,
-      assessment: {
-        id: assessment.id,
-        ...scoringResult,
-        savedAt: assessment.created_at
-      }
+      data: data || []
     });
 
   } catch (error) {
-    console.error('Error calculating assessment:', error);
+    console.error('Get assessments error:', error);
     return NextResponse.json(
-      { error: 'Failed to calculate assessment' },
+      { error: 'Failed to retrieve assessments' },
       { status: 500 }
     );
   }

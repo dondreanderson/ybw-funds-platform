@@ -156,5 +156,9 @@ export class AIScoringEngine {
     }
   }
 }
-
+//export { AIScoringEngine };
 export default AIScoringEngine;
+
+// If any files are importing with different names, add these aliases:
+export { AIScoringEngine as aiScoringEngine };
+export { calculatePercentile };

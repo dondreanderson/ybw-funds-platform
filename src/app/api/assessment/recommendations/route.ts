@@ -1,60 +1,144 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { aiScoringEngine } from '@/lib/ai-scoring-engine';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+import { AIScoringEngine } from '@/lib/ai-scoring-engine';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+interface RecommendationRequest {
+  assessmentId?: string;
+  userId?: string;
+  categoryScores?: Record<string, number>;
+  industry?: string;
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, assessmentId } = await request.json();
+    const body: RecommendationRequest = await request.json();
+    
+    let categoryScores: Record<string, number> = {};
+    let industry: string | undefined;
 
-    if (!userId || !assessmentId) {
+    if (body.assessmentId) {
+      // Get assessment data from database
+      const { data: assessment, error } = await supabase
+        .from('advanced_fundability_assessments')
+        .select('category_scores, metadata')
+        .eq('id', body.assessmentId)
+        .single();
+
+      if (error) {
+        return NextResponse.json(
+          { error: 'Assessment not found' },
+          { status: 404 }
+        );
+      }
+
+      categoryScores = assessment.category_scores || {};
+      industry = assessment.metadata?.industry;
+    } else if (body.categoryScores) {
+      // Use provided category scores
+      categoryScores = body.categoryScores;
+      industry = body.industry;
+    } else {
       return NextResponse.json(
-        { error: 'User ID and Assessment ID are required' },
+        { error: 'Either assessmentId or categoryScores must be provided' },
         { status: 400 }
       );
     }
 
-    // Get latest assessment
-    const { data: assessment, error } = await supabase
-      .from('advanced_fundability_assessments')
-      .select(`
-        *,
-        category_performances (*)
-      `)
-      .eq('id', assessmentId)
-      .eq('user_id', userId)
-      .single();
+    // Generate recommendations using AI scoring engine
+    const recommendations = await AIScoringEngine.generateRecommendations(
+      categoryScores,
+      industry
+    );
 
-    if (error || !assessment) {
-      return NextResponse.json(
-        { error: 'Assessment not found' },
-        { status: 404 }
-      );
+    // Get industry comparison if available
+    let industryComparison = null;
+    if (industry) {
+      const overallScore = Object.values(categoryScores).reduce((sum, score) => sum + score, 0) / Object.keys(categoryScores).length;
+      industryComparison = await AIScoringEngine.getIndustryComparison(overallScore, industry);
     }
-
-    // Generate fresh AI recommendations
-    const assessmentData = {
-      userId,
-      businessType: assessment.metadata?.businessType || 'general',
-      industry: assessment.metadata?.industry || 'general',
-      yearsInBusiness: 2, // Default, could be extracted from metadata
-      annualRevenue: 100000, // Default, could be extracted from metadata
-      completedCriteria: [], // Would need to rebuild from category_performances
-      responses: {}
-    };
-
-    const scoringResult = await aiScoringEngine.calculateFundabilityScore(assessmentData);
 
     return NextResponse.json({
       success: true,
-      recommendations: scoringResult.recommendations,
-      improvementPotential: scoringResult.improvementPotential,
-      fundabilityGrade: scoringResult.fundabilityGrade
+      data: {
+        recommendations,
+        categoryScores,
+        industry,
+        industryComparison
+      }
     });
 
   } catch (error) {
-    console.error('Error generating recommendations:', error);
+    console.error('Recommendations generation error:', error);
     return NextResponse.json(
       { error: 'Failed to generate recommendations' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const assessmentId = searchParams.get('assessmentId');
+    const userId = searchParams.get('userId');
+
+    if (!assessmentId && !userId) {
+      return NextResponse.json(
+        { error: 'Either assessmentId or userId is required' },
+        { status: 400 }
+      );
+    }
+
+    let query = supabase
+      .from('assessment_recommendations')
+      .select('*');
+
+    if (assessmentId) {
+      query = query.eq('assessment_id', assessmentId);
+    } else if (userId) {
+      // Get recommendations for user's latest assessment
+      const { data: latestAssessment, error: assessmentError } = await supabase
+        .from('advanced_fundability_assessments')
+        .select('id')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (assessmentError) {
+        return NextResponse.json(
+          { error: 'No assessments found for user' },
+          { status: 404 }
+        );
+      }
+
+      query = query.eq('assessment_id', latestAssessment.id);
+    }
+
+    const { data, error } = await query.order('priority', { ascending: true });
+
+    if (error) {
+      console.error('Database error:', error);
+      return NextResponse.json(
+        { error: 'Failed to retrieve recommendations' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: data || []
+    });
+
+  } catch (error) {
+    console.error('Get recommendations error:', error);
+    return NextResponse.json(
+      { error: 'Failed to retrieve recommendations' },
       { status: 500 }
     );
   }
