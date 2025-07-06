@@ -1,151 +1,83 @@
-import { createClient } from '@supabase/supabase-js'
-import { Database } from './database.types'
+// src/lib/batchResponseService.ts
+import { createClient } from '@/lib/supabase/client';
+import type { FundabilityCriteriaResponse } from '@/types/database';
 
-const supabase = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
-export interface BatchResponse {
-  criterionId: string
-  responseValue: any
-  responseType: 'boolean' | 'text' | 'number' | 'select'
-  pointsEarned?: number
-  maxPoints?: number
-}
-
-export interface BatchResponseSubmission {
-  assessmentId: string
-  userId: string
-  responses: BatchResponse[]
-  category: string
+export interface BatchResponseInput {
+  assessmentId: string;
+  userId: string;
+  responses: Array<{
+    category: string;
+    criterionId: string;
+    criterionName: string;
+    criterionDescription?: string;
+    responseValue: any;
+    responseType: 'number' | 'boolean' | 'text' | 'select';
+    pointsEarned: number;
+    pointsPossible: number;
+    weightFactor?: number;
+    isCritical?: boolean;
+  }>;
 }
 
 export class BatchResponseService {
-  // Save multiple responses in a single transaction
-  static async saveBatchResponses(submission: BatchResponseSubmission) {
-    try {
-      const { assessmentId, userId, responses, category } = submission
+  private supabase = createClient();
 
+  async submitBatchResponses(batchData: BatchResponseInput) {
+    try {
+      const { assessmentId, userId, responses } = batchData;
+      
       // Prepare responses for database insertion
-      const responseRecords = responses.map(response => ({
+      const responseRecords: Omit<FundabilityCriteriaResponse, 'id' | 'created_at'>[] = responses.map(response => ({
         assessment_id: assessmentId,
         user_id: userId,
-        category: category,
+        category: response.category,
         criterion_id: response.criterionId,
+        criterion_name: response.criterionName,
+        criterion_description: response.criterionDescription || null,
         response_value: response.responseValue,
         response_type: response.responseType,
-        points_earned: response.pointsEarned || 0,
-        points_possible: response.maxPoints || 0,
+        points_earned: response.pointsEarned,
+        points_possible: response.pointsPossible,
+        weight_factor: response.weightFactor || 1.0,
+        weighted_score: (response.pointsEarned * (response.weightFactor || 1.0)),
+        is_critical: response.isCritical || false,
+        requires_improvement: response.pointsEarned < response.pointsPossible,
+        improvement_priority: response.isCritical && response.pointsEarned < response.pointsPossible ? 1 : null,
         answered_at: new Date().toISOString()
-      }))
+      }));
 
-      // Insert all responses in a batch
-      const { data, error } = await supabase
+      // Insert responses into database
+      const { data, error } = await this.supabase
         .from('fundability_criteria_responses')
         .insert(responseRecords)
-        .select()
+        .select();
 
       if (error) {
-        throw new Error(`Failed to save batch responses: ${error.message}`)
+        console.error('Error inserting batch responses:', error);
+        throw error;
       }
 
-      return {
-        success: true,
-        savedResponses: data?.length || 0,
-        data: data
-      }
+      return { success: true, data };
     } catch (error) {
-      console.error('Batch response save error:', error)
-      throw error
+      console.error('Batch response service error:', error);
+      throw error;
     }
   }
 
-  // Update existing responses in batch
-  static async updateBatchResponses(
-    assessmentId: string, 
-    updates: Array<{criterionId: string, responseValue: any, pointsEarned?: number}>
-  ) {
+  async getBatchResponses(assessmentId: string) {
     try {
-      const updatePromises = updates.map(update => 
-        supabase
-          .from('fundability_criteria_responses')
-          .update({
-            response_value: update.responseValue,
-            points_earned: update.pointsEarned || 0,
-            answered_at: new Date().toISOString()
-          })
-          .eq('assessment_id', assessmentId)
-          .eq('criterion_id', update.criterionId)
-      )
-
-      const results = await Promise.all(updatePromises)
-      
-      // Check for errors
-      const errors = results.filter(result => result.error)
-      if (errors.length > 0) {
-        throw new Error(`Failed to update some responses: ${errors[0].error?.message}`)
-      }
-
-      return {
-        success: true,
-        updatedResponses: updates.length
-      }
-    } catch (error) {
-      console.error('Batch response update error:', error)
-      throw error
-    }
-  }
-
-  // Delete responses by assessment and category
-  static async deleteCategoryResponses(assessmentId: string, category: string) {
-    try {
-      const { error } = await supabase
+      const { data, error } = await this.supabase
         .from('fundability_criteria_responses')
-        .delete()
-        .eq('assessment_id', assessmentId)
-        .eq('category', category)
+        .select('*')
+        .eq('assessment_id', assessmentId);
 
-      if (error) {
-        throw new Error(`Failed to delete category responses: ${error.message}`)
-      }
-
-      return { success: true }
+      if (error) throw error;
+      return data;
     } catch (error) {
-      console.error('Delete category responses error:', error)
-      throw error
-    }
-  }
-
-  // Validate batch responses before saving
-  static validateBatchResponses(responses: BatchResponse[]): { valid: boolean, errors: string[] } {
-    const errors: string[] = []
-
-    if (!Array.isArray(responses) || responses.length === 0) {
-      errors.push('Responses array is required and cannot be empty')
-    }
-
-    responses.forEach((response, index) => {
-      if (!response.criterionId) {
-        errors.push(`Response ${index + 1}: criterionId is required`)
-      }
-      
-      if (!response.responseType) {
-        errors.push(`Response ${index + 1}: responseType is required`)
-      }
-      
-      if (!['boolean', 'text', 'number', 'select'].includes(response.responseType)) {
-        errors.push(`Response ${index + 1}: invalid responseType`)
-      }
-      
-      if (response.responseValue === undefined || response.responseValue === null) {
-        errors.push(`Response ${index + 1}: responseValue is required`)
-      }
-    })
-
-    return {
-      valid: errors.length === 0,
-      errors
+      console.error('Error fetching batch responses:', error);
+      throw error;
     }
   }
 }
+
+export const batchResponseService = new BatchResponseService();
