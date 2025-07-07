@@ -1,5 +1,5 @@
 // src/lib/batchResponseService.ts
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase';
 import type { FundabilityCriteriaResponse } from '@/types/database';
 
 export interface BatchResponseInput {
@@ -20,7 +20,7 @@ export interface BatchResponseInput {
 }
 
 export class BatchResponseService {
-  private supabase = createClient();
+  private supabase = createClient;
 
   async submitBatchResponses(batchData: BatchResponseInput) {
     try {

@@ -1,0 +1,157 @@
+import { SupabaseClient } from '@supabase/supabase-js'
+
+export class RecommendationService {
+  constructor(private supabase: SupabaseClient) {}
+
+  // Generate AI-powered recommendations
+  async generateRecommendations(assessmentId: string, scoreData: {
+    categoryScores: Record<string, number>
+    overallScore: number
+    businessType?: string
+    industry?: string
+    responses: Array<{
+      category: string
+      criterionId: string
+      pointsEarned: number
+      pointsPossible: number
+      requiresImprovement: boolean
+    }>
+  }) {
+    const recommendations = []
+
+    // Analyze each category for recommendations
+    for (const [category, score] of Object.entries(scoreData.categoryScores)) {
+      const categoryResponses = scoreData.responses.filter(r => r.category === category)
+      const improvementItems = categoryResponses.filter(r => r.requiresImprovement)
+
+      if (improvementItems.length > 0) {
+        const priority = score < 60 ? 'high' : score < 80 ? 'medium' : 'low'
+        const estimatedImpact = improvementItems.reduce((sum, item) => 
+          sum + (item.pointsPossible - item.pointsEarned), 0)
+
+        const recommendation = {
+          assessment_id: assessmentId,
+          category_id: category,
+          recommendation_type: 'improvement',
+          title: `Improve ${category} Score`,
+          description: this.generateCategoryDescription(category, score, improvementItems.length),
+          priority,
+          estimated_impact_points: estimatedImpact,
+          estimated_timeframe: this.getTimeframeByPriority(priority),
+          action_items: this.generateActionItems(category, improvementItems),
+          resources: this.getCategoryResources(category)
+        }
+
+        recommendations.push(recommendation)
+      }
+    }
+
+    // Save recommendations to database
+    if (recommendations.length > 0) {
+      const { data, error } = await this.supabase
+        .from('assessment_recommendations')
+        .insert(recommendations)
+        .select()
+
+      if (error) throw error
+      return data
+    }
+
+    return []
+  }
+
+  private generateCategoryDescription(category: string, score: number, improvementCount: number): string {
+    const descriptions: Record<string, string> = {
+      'Business Foundation': `Your business foundation score is ${score}/100. Focus on completing ${improvementCount} key requirements to establish stronger business credibility.`,
+      'Legal Structure': `Legal structure assessment shows ${score}/100. Address ${improvementCount} compliance areas to improve your business legal standing.`,
+      'Banking & Finance': `Banking and financial profile scores ${score}/100. Strengthen ${improvementCount} financial relationships for better funding access.`,
+      'Business Credit Profile': `Business credit profile rates ${score}/100. Build stronger credit relationships by addressing ${improvementCount} key areas.`,
+      'Marketing Presence': `Online and marketing presence scores ${score}/100. Enhance ${improvementCount} digital touchpoints for better business visibility.`,
+      'Operational Excellence': `Operational systems score ${score}/100. Improve ${improvementCount} operational areas for enhanced business stability.`,
+      'Documentation': `Business documentation completeness is ${score}/100. Complete ${improvementCount} essential documents for better fundability.`,
+      'Financial Health': `Financial health assessment shows ${score}/100. Strengthen ${improvementCount} financial indicators for improved lending appeal.`
+    }
+
+    return descriptions[category] || `Category score: ${score}/100. Address ${improvementCount} improvement areas.`
+  }
+
+  private getTimeframeByPriority(priority: string): string {
+    const timeframes: Record<string, string> = {
+      'high': '1-2 weeks',
+      'medium': '2-4 weeks',
+      'low': '1-2 months'
+    }
+    return timeframes[priority] || '2-4 weeks'
+  }
+
+  private generateActionItems(category: string, items: any[]): string[] {
+    // Generate specific action items based on category and failed criteria
+    const actionMaps: Record<string, string[]> = {
+      'Business Foundation': [
+        'Obtain EIN from IRS if not already completed',
+        'Register business with state authorities',
+        'Secure required business licenses',
+        'Establish business address and phone number'
+      ],
+      'Banking & Finance': [
+        'Open dedicated business bank account',
+        'Establish business credit card',
+        'Build relationship with business banker',
+        'Implement accounting system'
+      ],
+      'Business Credit Profile': [
+        'Apply for DUNS number with D&B',
+        'Establish trade references with vendors',
+        'Apply for net terms accounts',
+        'Monitor business credit reports monthly'
+      ],
+      'Legal Structure': [
+        'Complete business entity registration',
+        'Obtain required business licenses',
+        'File necessary compliance documents',
+        'Review and update operating agreements'
+      ],
+      'Marketing Presence': [
+        'Create professional business website',
+        'Set up Google My Business listing',
+        'Establish social media presence',
+        'Develop brand identity materials'
+      ],
+      'Operational Excellence': [
+        'Implement business management systems',
+        'Establish standard operating procedures',
+        'Set up inventory management',
+        'Create employee handbook'
+      ],
+      'Documentation': [
+        'Organize financial statements',
+        'Prepare tax returns and filings',
+        'Create business plan document',
+        'Maintain corporate records'
+      ],
+      'Financial Health': [
+        'Improve cash flow management',
+        'Establish financial reporting',
+        'Build emergency fund reserves',
+        'Monitor key financial metrics'
+      ]
+    }
+
+    return actionMaps[category]?.slice(0, items.length) || [
+      `Address ${items.length} improvement areas in ${category}`,
+      `Review and complete missing requirements`,
+      `Consult with business advisor for guidance`
+    ]
+  }
+
+  private getCategoryResources(category: string): Record<string, any> {
+    return {
+      links: [
+        `https://resources.ybwfunds.com/${category.toLowerCase().replace(/\s+/g, '-')}`,
+        'https://www.sba.gov/business-guide'
+      ],
+      guides: [`${category} Improvement Guide`, 'Business Fundability Checklist'],
+      support: 'Schedule consultation with business credit advisor'
+    }
+  }
+}

@@ -1,4 +1,27 @@
-import { ErrorHandler } from './errorHandler';
+//import { ErrorHandler } from './errorHandler';
+
+// Add these interfaces at the top
+export interface CategoryScore {
+  score: number;
+  maxScore: number;
+  percentage: number;
+  completedCriteria: number;
+  totalCriteria: number;
+}
+
+export interface CriterionScore {
+  score: number;
+  maxScore: number;
+  percentage: number;
+}
+
+export interface AdvancedScoreResult {
+  totalScore: number;
+  categoryScores: Record<string, CategoryScore>;
+  completionPercentage: number;
+  criteriaScores: Record<string, CriterionScore>;
+  maxPossibleScore: number;
+}
 
 export class ScoringCalculator {
   private readonly categories = [
@@ -15,7 +38,13 @@ export class ScoringCalculator {
   async calculateAdvancedScore(
     criteria: any[], 
     responses: [string, any][]
-  ): Promise {
+  ): Promise<{
+      totalScore: number;
+      categoryScores: any;
+      completionPercentage: number;
+      criteriaScores: any;
+      maxPossibleScore: number;
+}> {
     try {
       const categoryScores = this.calculateCategoryScores(criteria, responses);
       const totalScore = this.calculateTotalScore(categoryScores);
@@ -30,7 +59,7 @@ export class ScoringCalculator {
         maxPossibleScore: this.calculateMaxScore(criteria)
       };
     } catch (error) {
-      throw ErrorHandler.createError('SCORING_CALCULATION_ERROR', error);
+      throw new Error(`Scoring calculation error: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

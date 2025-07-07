@@ -1,6 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { aiScoringEngine, type AssessmentData } from '@/lib/ai-scoring-engine'
-
+import { aiScoringEngine } from '@/lib/ai-scoring-engine'
 export interface AssessmentWithCategories {
   id: string
   user_id: string
@@ -114,6 +113,81 @@ class RealAssessmentService {
       return this.generateMockHistory(userId)
     }
   }
+  // Add this method to the RealAssessmentService class
+async saveAssessment(
+  userId: string,
+  overallScore: number,
+  categoryScores: Record<string, number>,
+  categoryPerformances: any[]
+): Promise<string | null> {
+  try {
+    console.log('Saving assessment for user:', userId)
+
+    // Insert the advanced assessment
+    const { data: assessment, error: assessmentError } = await supabase
+      .from('advanced_fundability_assessments')
+      .insert({
+        user_id: userId,
+        overall_score: overallScore,
+        category_scores: categoryScores,
+        completion_percentage: 100,
+        status: 'completed',
+        assessment_version: '2.0'
+      })
+      .select()
+      .single()
+
+    if (assessmentError) {
+      console.error('Error saving assessment:', assessmentError)
+      return null
+    }
+
+    // Insert category performances
+    if (categoryPerformances && categoryPerformances.length > 0) {
+      const categoryData = categoryPerformances.map(perf => ({
+        assessment_id: assessment.id,
+        category_name: perf.categoryName,
+        score: perf.score,
+        max_score: perf.maxScore,
+        completed_criteria: perf.completedCriteria,
+        total_criteria: perf.totalCriteria
+      }))
+
+      const { error: categoryError } = await supabase
+        .from('category_performances')
+        .insert(categoryData)
+
+      if (categoryError) {
+        console.error('Error saving category performances:', categoryError)
+        // Don't fail the whole operation for this
+      }
+    }
+
+    // Update score history
+    const { error: historyError } = await supabase
+      .from('score_history')
+      .insert({
+        user_id: userId,
+        assessment_id: assessment.id,
+        overall_score: overallScore,
+        category_scores: categoryScores,
+        assessment_date: new Date().toDateString(),
+        score_change: 0 // Could calculate this from previous assessment
+      })
+
+    if (historyError) {
+      console.error('Error saving score history:', historyError)
+      // Don't fail the whole operation for this
+    }
+
+    console.log('Assessment saved successfully:', assessment.id)
+    return assessment.id
+
+  } catch (error) {
+    console.error('Error in saveAssessment:', error)
+    return null
+  }
+}
 
   // Generate immediate fallback assessment
   private getFallbackAssessment(userId: string): AssessmentWithCategories {

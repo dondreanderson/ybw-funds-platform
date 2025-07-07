@@ -1,9 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+import { supabase } from '@/lib/supabase';
 
 export interface CriteriaResponse {
   id: string
@@ -26,7 +21,7 @@ export interface CriteriaResponse {
 
 export class CriteriaResponseManager {
   
-  async saveCriteriaResponse(response: Partial): Promise {
+  async saveCriteriaResponse(response: Partial<CriteriaResponse>): Promise<CriteriaResponse | null> {
     try {
       const { data, error } = await supabase
         .from('fundability_criteria_responses')
@@ -65,7 +60,7 @@ export class CriteriaResponseManager {
     }
   }
 
-  async getCriteriaResponses(assessmentId: string): Promise {
+  async getCriteriaResponses(assessmentId: string): Promise<CriteriaResponse[]> {
     try {
       const { data, error } = await supabase
         .from('fundability_criteria_responses')
@@ -86,7 +81,7 @@ export class CriteriaResponseManager {
     }
   }
 
-  async updateCriteriaResponse(id: string, updates: Partial): Promise {
+  async updateCriteriaResponse(id: string, updates: Partial<CriteriaResponse>): Promise<boolean> {
     try {
       const { error } = await supabase
         .from('fundability_criteria_responses')
@@ -110,7 +105,7 @@ export class CriteriaResponseManager {
     }
   }
 
-  async getCriteriaResponsesByCategory(assessmentId: string, category: string): Promise {
+  async getCriteriaResponsesByCategory(assessmentId: string, category: string): Promise<CriteriaResponse[]> {
     try {
       const { data, error } = await supabase
         .from('fundability_criteria_responses')
@@ -131,7 +126,7 @@ export class CriteriaResponseManager {
     }
   }
 
-  async getImprovementOpportunities(assessmentId: string): Promise {
+  async getImprovementOpportunities(assessmentId: string): Promise<CriteriaResponse[]> {
     try {
       const { data, error } = await supabase
         .from('fundability_criteria_responses')
@@ -178,7 +173,7 @@ export class CriteriaResponseManager {
     }
   }
 
-  async generateCategoryRecommendations(assessmentId: string, category: string): Promise {
+  async generateCategoryRecommendations(assessmentId: string, category: string): Promise<string[]> {
     try {
       const improvements = await this.getCriteriaResponsesByCategory(assessmentId, category)
         .then(responses => responses.filter(r => r.requires_improvement))
@@ -218,7 +213,7 @@ export class CriteriaResponseManager {
     return Math.round(pointsEarned * weightFactor * 100) / 100
   }
 
-  async batchSaveCriteriaResponses(responses: Partial[]): Promise {
+  async batchSaveCriteriaResponses(responses: Partial<CriteriaResponse>[]): Promise<CriteriaResponse[]> {
     try {
       const formattedResponses = responses.map(response => ({
         assessment_id: response.assessment_id,

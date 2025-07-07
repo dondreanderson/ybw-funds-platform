@@ -1,19 +1,16 @@
+// Minimal services export - we'll rebuild these systematically
+export { realAssessmentService } from './realAssessmentService';
 
-
-import { createClient } from '@supabase/supabase-js';
-import { CriteriaResponseService } from './criteriaResponseService';
+// Placeholder exports to prevent import errors
+export const CriteriaResponseService = null;
+export const AnalyticsService = null;
+export const RecommendationService = null;
+export const FundingService = null;
 
 export function createCriteriaResponseService() {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-  
-  return new CriteriaResponseService(supabase);
+  return null;
 }
 
-// Hook for React components
 export function useCriteriaResponseService() {
-  const [service] = useState(() => createCriteriaResponseService());
-  return service;
+  return null;
 }
