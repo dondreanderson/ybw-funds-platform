@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { Database } from './database.types'
 
+
 const supabase = createClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -197,7 +198,7 @@ export class ScoringCalculationService {
         .from('advanced_fundability_assessments')
         .update({
           overall_score: scoringResult.overallScore,
-          category_scores: scoringResult.categoryScores,
+          category_scores: scoringResult.categoryScores as any,
           completion_percentage: scoringResult.completionPercentage,
           updated_at: new Date().toISOString()
         })

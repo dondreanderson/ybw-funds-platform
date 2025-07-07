@@ -1,0 +1,224 @@
+import { createClient } from '@supabase/supabase-js';
+import { Database } from '@/lib/database.types';
+
+type SupabaseClient = ReturnType<typeof createClient<Database>>;
+
+// Interface for input data (what we send)
+export interface CriterionResponseData {
+  category: string;
+  criterionId: string;
+  criterionName: string;
+  description?: string | null;
+  responseValue: any;
+  responseType: string;
+  pointsEarned: number;
+  pointsPossible: number;
+  weightFactor?: number | null;
+  isCritical?: boolean;
+}
+
+// Interface matching exact database schema (what we get back)
+export interface CriterionResponse {
+  id?: string;
+  assessment_id: string | null;
+  user_id: string | null;
+  category: string;
+  criterion_id: string;
+  criterion_name: string;
+  criterion_description?: string | null;
+  response_value: any;
+  response_type: string;
+  points_earned: number | null;  // Allow null from database
+  points_possible: number | null; // Allow null from database
+  weight_factor: number | null;
+  weighted_score: number | null;
+  is_critical?: boolean | null;
+  requires_improvement?: boolean | null;
+  improvement_priority?: number | null;
+  answered_at?: string | null;
+  created_at?: string | null;
+}
+
+export class CriteriaResponseService {
+  private supabase: SupabaseClient;
+  
+  constructor(supabase: SupabaseClient) {
+    this.supabase = supabase;
+  }
+
+  // Save individual criterion response
+  async saveCriterionResponse(
+    assessmentId: string,
+    userId: string,
+    criterionData: CriterionResponseData
+  ): Promise<CriterionResponse | null> {
+    try {
+      const weightFactor = criterionData.weightFactor ?? 1.0;
+      const weightedScore = this.calculateWeightedScore(criterionData.pointsEarned, weightFactor);
+      
+      const response = await this.supabase
+        .from('fundability_criteria_responses')
+        .insert({
+          assessment_id: assessmentId,
+          user_id: userId,
+          category: criterionData.category,
+          criterion_id: criterionData.criterionId,
+          criterion_name: criterionData.criterionName,
+          criterion_description: criterionData.description,
+          response_value: criterionData.responseValue,
+          response_type: criterionData.responseType,
+          points_earned: criterionData.pointsEarned,
+          points_possible: criterionData.pointsPossible,
+          weight_factor: weightFactor,
+          weighted_score: weightedScore,
+          is_critical: criterionData.isCritical ?? false,
+          requires_improvement: criterionData.pointsEarned < criterionData.pointsPossible,
+          improvement_priority: this.calculateImprovementPriority(criterionData),
+          answered_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (response.error) {
+        console.error('Error saving criterion response:', response.error);
+        return null;
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error in saveCriterionResponse:', error);
+      return null;
+    }
+  }
+
+  // Batch save multiple criterion responses
+  async saveBatchCriterionResponses(
+    assessmentId: string,
+    userId: string,
+    criteriaData: CriterionResponseData[]
+  ): Promise<CriterionResponse[]> {
+    try {
+      const responses = criteriaData.map(criterionData => {
+        const weightFactor = criterionData.weightFactor ?? 1.0;
+        const weightedScore = this.calculateWeightedScore(criterionData.pointsEarned, weightFactor);
+        
+        return {
+          assessment_id: assessmentId,
+          user_id: userId,
+          category: criterionData.category,
+          criterion_id: criterionData.criterionId,
+          criterion_name: criterionData.criterionName,
+          criterion_description: criterionData.description,
+          response_value: criterionData.responseValue,
+          response_type: criterionData.responseType,
+          points_earned: criterionData.pointsEarned,
+          points_possible: criterionData.pointsPossible,
+          weight_factor: weightFactor,
+          weighted_score: weightedScore,
+          is_critical: criterionData.isCritical ?? false,
+          requires_improvement: criterionData.pointsEarned < criterionData.pointsPossible,
+          improvement_priority: this.calculateImprovementPriority(criterionData),
+          answered_at: new Date().toISOString()
+        };
+      });
+
+      const response = await this.supabase
+        .from('fundability_criteria_responses')
+        .insert(responses)
+        .select();
+
+      if (response.error) {
+        console.error('Error saving batch criterion responses:', response.error);
+        return [];
+      }
+      
+      return response.data || [];
+    } catch (error) {
+      console.error('Error in saveBatchCriterionResponses:', error);
+      return [];
+    }
+  }
+
+  // Get criterion responses for an assessment
+  async getCriterionResponses(assessmentId: string): Promise<CriterionResponse[]> {
+    try {
+      const response = await this.supabase
+        .from('fundability_criteria_responses')
+        .select('*')
+        .eq('assessment_id', assessmentId)
+        .order('category')
+        .order('improvement_priority', { ascending: false });
+
+      if (response.error) {
+        console.error('Error getting criterion responses:', response.error);
+        return [];
+      }
+      
+      return response.data || [];
+    } catch (error) {
+      console.error('Error in getCriterionResponses:', error);
+      return [];
+    }
+  }
+
+  // Update a criterion response
+  // Update a criterion response
+async updateCriterionResponse(
+  responseId: string,
+  updates: Partial<CriterionResponseData>
+): Promise<CriterionResponse | null> {
+  try {
+    const updateData: Record<string, any> = {};
+    
+    // Only include defined values in update
+    Object.keys(updates).forEach(key => {
+      const value = (updates as any)[key];
+      if (value !== undefined) {
+        updateData[key] = value;
+      }
+    });
+    
+    // Calculate weighted score with null safety
+    if (updates.pointsEarned !== undefined && updates.weightFactor !== undefined) {
+      const pointsEarned = updates.pointsEarned ?? 0;
+      const weightFactor = updates.weightFactor ?? 1.0;
+      updateData.weighted_score = this.calculateWeightedScore(pointsEarned, weightFactor);
+    }
+
+    const response = await this.supabase
+      .from('fundability_criteria_responses')
+      .update(updateData)
+      .eq('id', responseId)
+      .select()
+      .single();
+
+    if (response.error) {
+      console.error('Error updating criterion response:', response.error);
+      return null;
+    }
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error in updateCriterionResponse:', error);
+    return null;
+  }
+}
+
+  // Calculate weighted score - handles null values safely
+  private calculateWeightedScore(pointsEarned: number, weightFactor: number): number {
+    return Math.round(pointsEarned * weightFactor * 100) / 100;
+  }
+
+  // Calculate improvement priority - handles null values safely
+  private calculateImprovementPriority(criterionData: CriterionResponseData): number {
+    if (!criterionData.pointsPossible || criterionData.pointsPossible === 0) return 0;
+    
+    const completionRate = criterionData.pointsEarned / criterionData.pointsPossible;
+    if (completionRate === 0 && criterionData.isCritical) return 5; // Highest priority
+    if (completionRate < 0.5 && criterionData.isCritical) return 4;
+    if (completionRate === 0) return 3;
+    if (completionRate < 0.5) return 2;
+    if (completionRate < 1.0) return 1;
+    return 0; // Complete, no improvement needed
+  }
+}

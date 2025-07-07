@@ -1,0 +1,202 @@
+import { SupabaseClient } from '@supabase/supabase-js'
+
+export class FundingService {
+  constructor(private supabase: SupabaseClient) {}
+
+  // Get matched funding opportunities
+  async getMatchedOpportunities(userId: string, businessProfile: any) {
+    const { data: opportunities, error } = await this.supabase
+      .from('funding_opportunities')
+      .select('*')
+      .eq('is_active', true)
+      .lte('min_credit_score', businessProfile.fundability_score || 0)
+      .lte('minimum_annual_revenue', businessProfile.annual_revenue || 0)
+      .lte('minimum_time_in_business', businessProfile.years_in_business || 0)
+
+    if (error) throw error
+
+    // Create user funding matches
+    const matches = []
+    for (const opportunity of opportunities || []) {
+      const matchScore = this.calculateMatchScore(opportunity, businessProfile)
+      
+      if (matchScore >= 60) {
+        const { data: match, error: matchError } = await this.supabase
+          .from('user_funding_matches')
+          .upsert({
+            user_id: userId,
+            funding_opportunity_id: opportunity.id,
+            match_score: matchScore,
+            is_prequalified: matchScore >= 80
+          })
+          .select()
+          .single()
+
+        if (!matchError && match) {
+          matches.push({ 
+            ...opportunity, 
+            match_score: matchScore, 
+            match_id: match.id 
+          })
+        }
+      }
+    }
+
+    return matches.sort((a, b) => b.match_score - a.match_score)
+  }
+
+  // Get funding opportunities by criteria
+  async getFundingOpportunities(filters: {
+    minCreditScore?: number
+    maxLoanAmount?: number
+    requiresPersonalGuarantee?: boolean
+    industry?: string
+  } = {}) {
+    let query = this.supabase
+      .from('funding_opportunities')
+      .select('*')
+      .eq('is_active', true)
+
+    if (filters.minCreditScore) {
+      query = query.lte('min_credit_score', filters.minCreditScore)
+    }
+    if (filters.maxLoanAmount) {
+      query = query.gte('max_loan_amount', filters.maxLoanAmount)
+    }
+    if (filters.requiresPersonalGuarantee !== undefined) {
+      query = query.eq('requires_personal_guarantee', filters.requiresPersonalGuarantee)
+    }
+
+    const { data, error } = await query.order('max_loan_amount', { ascending: false })
+
+    if (error) throw error
+    return data || []
+  }
+
+  // Create or update funding match
+  async createFundingMatch(userId: string, opportunityId: string, matchScore: number) {
+    const { data, error } = await this.supabase
+      .from('user_funding_matches')
+      .upsert({
+        user_id: userId,
+        funding_opportunity_id: opportunityId,
+        match_score: matchScore,
+        is_prequalified: matchScore >= 80,
+        created_at: new Date().toISOString()
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  }
+
+  // Get user's funding matches
+  async getUserFundingMatches(userId: string) {
+    const { data, error } = await this.supabase
+      .from('user_funding_matches')
+      .select(`
+        *,
+        funding_opportunities (*)
+      `)
+      .eq('user_id', userId)
+      .order('match_score', { ascending: false })
+
+    if (error) throw error
+    return data || []
+  }
+
+  // Update funding match application status
+  async updateMatchApplicationStatus(
+    matchId: string, 
+    status: string, 
+    appliedAt?: string
+  ) {
+    const updates: any = {
+      application_status: status
+    }
+
+    if (appliedAt) {
+      updates.applied_at = appliedAt
+    }
+
+    const { data, error } = await this.supabase
+      .from('user_funding_matches')
+      .update(updates)
+      .eq('id', matchId)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  }
+
+  // Calculate match score between opportunity and business profile
+  private calculateMatchScore(opportunity: any, profile: any): number {
+    let score = 0
+
+    // Credit score match (30%)
+    if (profile.fundability_score >= (opportunity.min_credit_score || 0)) {
+      score += 30
+    }
+
+    // Revenue match (25%)
+    if (profile.annual_revenue >= (opportunity.minimum_annual_revenue || 0)) {
+      score += 25
+    }
+
+    // Time in business match (20%)
+    if (profile.years_in_business >= (opportunity.minimum_time_in_business || 0)) {
+      score += 20
+    }
+
+    // Industry match (15%)
+    if (!opportunity.industry_restrictions || 
+        !Array.isArray(opportunity.industry_restrictions) ||
+        opportunity.industry_restrictions.length === 0 ||
+        opportunity.industry_restrictions.includes(profile.industry)) {
+      score += 15
+    }
+
+    // Personal guarantee preference (10%)
+    if (!opportunity.requires_personal_guarantee) {
+      score += 10
+    }
+
+    return Math.min(score, 100)
+  }
+
+  // Get funding recommendations based on score
+  async getFundingRecommendations(userId: string, fundabilityScore: number) {
+    const recommendations = []
+
+    if (fundabilityScore >= 80) {
+      recommendations.push({
+        type: 'bank_loan',
+        title: 'Traditional Bank Loan',
+        description: 'Your excellent fundability score qualifies you for traditional bank loans with competitive rates.',
+        priority: 'high'
+      })
+    }
+
+    if (fundabilityScore >= 60) {
+      recommendations.push({
+        type: 'sba_loan',
+        title: 'SBA Loan',
+        description: 'Consider SBA loans for favorable terms and lower down payments.',
+        priority: 'medium'
+      })
+    }
+
+    if (fundabilityScore < 60) {
+      recommendations.push({
+        type: 'alternative_funding',
+        title: 'Alternative Funding',
+        description: 'Explore alternative funding options while improving your fundability score.',
+        priority: 'high'
+      })
+    }
+
+    return recommendations
+  }
+}
