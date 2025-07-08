@@ -76,7 +76,6 @@ export function DashboardOverview() {
           <h3 className="text-lg font-semibold mb-4">Fundability Score</h3>
           <ScoreGauge
             score={stats.currentScore}
-            maxScore={100}
             size={200}
           />
           <div className="mt-4 text-center">
@@ -108,13 +107,19 @@ export function DashboardOverview() {
       <div className="bg-white p-6 rounded-lg shadow">
         <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
+          <button
+            onClick={() => window.location.href = '/assessment'}
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
             Take New Assessment
           </button>
-          <button className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors">
+          <button className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium">
             View Recommendations
           </button>
-          <button className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors">
+          <button
+            onClick={() => window.print()}
+            className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors font-medium"
+          >
             Download Report
           </button>
         </div>
@@ -123,7 +128,7 @@ export function DashboardOverview() {
   );
 }
 
-// Helper function
+// Helper function - MOVED OUTSIDE the component
 function getGrade(score: number): string {
   if (score >= 90) return 'A - Excellent';
   if (score >= 80) return 'B - Good';
