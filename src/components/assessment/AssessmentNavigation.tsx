@@ -2,104 +2,69 @@
 
 import React from 'react';
 import { useAssessment } from '@/contexts/AssessmentContext';
-import { useRouter } from 'next/navigation';
 
 interface AssessmentNavigationProps {
   currentStep: number;
   totalSteps: number;
   canGoNext: boolean;
   isComplete: boolean;
+  onComplete: () => void;
 }
 
-export function AssessmentNavigation({
-  currentStep,
-  totalSteps,
-  canGoNext,
-  isComplete
+export function AssessmentNavigation({ 
+  currentStep, 
+  totalSteps, 
+  canGoNext, 
+  isComplete,
+  onComplete 
 }: AssessmentNavigationProps) {
-  const { nextStep, prevStep, completeAssessment, state } = useAssessment();
-  const router = useRouter();
+  const { nextStep, prevStep } = useAssessment();
 
   const handleNext = () => {
     if (currentStep < totalSteps - 1) {
       nextStep();
-    } else {
-      // Last question - complete assessment
-      handleComplete();
     }
   };
 
-  const handleComplete = async () => {
-    await completeAssessment();
-    router.push('/assessment/results');
+  const handlePrevious = () => {
+    if (currentStep > 0) {
+      prevStep();
+    }
   };
 
-  const isLastQuestion = currentStep === totalSteps - 1;
-  const isFirstQuestion = currentStep === 0;
+  const isLastStep = currentStep === totalSteps - 1;
 
   return (
-    <div className="mt-8 bg-white rounded-lg shadow p-6">
-      <div className="flex items-center justify-between">
-        {/* Previous Button */}
+    <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
+      <button
+        onClick={handlePrevious}
+        disabled={currentStep === 0}
+        className="px-6 py-3 text-gray-600 bg-gray-200 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      >
+        ← Previous
+      </button>
+
+      <div className="text-sm text-gray-500 bg-gray-100 px-4 py-2 rounded-full">
+        Question {currentStep + 1} of {totalSteps}
+      </div>
+
+      {isLastStep ? (
         <button
-          onClick={prevStep}
-          disabled={isFirstQuestion}
-          className={`px-6 py-3 rounded-lg font-medium transition-all ${
-            isFirstQuestion
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          }`}
+          onClick={onComplete}
+          disabled={!canGoNext}
+          className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
         >
-          ← Previous
+          Complete Assessment ✓
         </button>
-
-        {/* Step Indicator */}
-        <div className="flex items-center space-x-2">
-          {Array.from({ length: totalSteps }, (_, i) => (
-            <div
-              key={i}
-              className={`w-2 h-2 rounded-full transition-all ${
-                i <= currentStep
-                  ? 'bg-blue-500'
-                  : 'bg-gray-300'
-              }`}
-            />
-          ))}
-        </div>
-
-        {/* Next/Complete Button */}
+      ) : (
         <button
           onClick={handleNext}
-          disabled={!canGoNext || state.loading}
-          className={`px-6 py-3 rounded-lg font-medium transition-all ${
-            !canGoNext || state.loading
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              : isLastQuestion
-              ? 'bg-green-600 text-white hover:bg-green-700'
-              : 'bg-blue-600 text-white hover:bg-blue-700'
-          }`}
+          disabled={!canGoNext}
+          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          {state.loading ? (
-            <div className="flex items-center">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-              Processing...
-            </div>
-          ) : isLastQuestion ? (
-            'Complete Assessment →'
-          ) : (
-            'Next →'
-          )}
+          Next →
         </button>
-      </div>
-
-      {/* Help Text */}
-      <div className="mt-4 text-center">
-        <p className="text-sm text-gray-600">
-          {!canGoNext && 'Please answer the question to continue'}
-          {canGoNext && !isLastQuestion && 'Click Next to continue or Previous to go back'}
-          {canGoNext && isLastQuestion && 'Ready to complete your assessment!'}
-        </p>
-      </div>
+      )}
     </div>
   );
 }

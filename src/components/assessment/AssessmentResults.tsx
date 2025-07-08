@@ -1,303 +1,183 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
-import { useAssessment } from '@/contexts/AssessmentContext';
-import { ScoreGauge } from '@/components/dashboard/ScoreGauge';
-import { ReportGenerator } from '@/lib/services/reportGenerator';
-import { useDashboardData } from '@/hooks/useDashboardData';
-import { toast } from '@/components/ui/Toast';
 
-export function AssessmentResults() {
-  const { state, resetAssessment, saveAndUpdateDashboard, getReportData } = useAssessment();
-  const { userProfile } = useDashboardData();
+interface AssessmentResultsProps {
+  score: number;
+  categoryScores: Record<string, number>;
+  recommendations: string[];
+  onClose: () => void;
+  onSaveAndExit: () => void;
+}
+
+export function AssessmentResults({ 
+  score, 
+  categoryScores, 
+  recommendations, 
+  onClose,
+  onSaveAndExit 
+}: AssessmentResultsProps) {
   const router = useRouter();
-  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
 
-  const getGrade = (score: number) => {
-    if (score >= 90) return { grade: 'A', label: 'Excellent', color: 'text-green-600' };
-    if (score >= 80) return { grade: 'B', label: 'Good', color: 'text-blue-600' };
-    if (score >= 70) return { grade: 'C', label: 'Fair', color: 'text-yellow-600' };
-    if (score >= 60) return { grade: 'D', label: 'Poor', color: 'text-orange-600' };
-    return { grade: 'F', label: 'Very Poor', color: 'text-red-600' };
+  const getScoreColor = (score: number): string => {
+    if (score >= 80) return 'text-green-600';
+    if (score >= 60) return 'text-yellow-600';
+    if (score >= 40) return 'text-orange-600';
+    return 'text-red-600';
   };
 
-  const gradeInfo = getGrade(state.currentScore);
+  const getGrade = (score: number): string => {
+    if (score >= 90) return 'A - Excellent';
+    if (score >= 80) return 'B - Good';
+    if (score >= 70) return 'C - Fair';
+    if (score >= 60) return 'D - Poor';
+    return 'F - Very Poor';
+  };
 
- const getRecommendations = (): Array<{
-  category: string;
-  title: string;
-  description: string;
-  priority: string;
-  estimatedImpact: string;
-}> => {
-  const recommendations: Array<{
-    category: string;
-    title: string;
-    description: string;
-    priority: string;
-    estimatedImpact: string;
-  }> = [];
-  
-  Object.entries(state.categoryScores).forEach(([category, score]) => {
-    if (score < 70) {
-      switch (category) {
-        case 'Business Foundation':
-          recommendations.push({
-            category,
-            title: 'Strengthen Business Foundation',
-            description: 'Complete business registration and establish core infrastructure',
-            priority: 'High',
-            estimatedImpact: '+15-25 points'
-          });
-          break;
-        case 'Banking & Finance':
-          recommendations.push({
-            category,
-            title: 'Improve Banking Relationships',
-            description: 'Open business accounts and establish financial tracking',
-            priority: 'Critical',
-            estimatedImpact: '+20-30 points'
-          });
-          break;
-        case 'Business Credit Profile':
-          recommendations.push({
-            category,
-            title: 'Build Business Credit',
-            description: 'Establish trade accounts and monitor credit reports',
-            priority: 'High',
-            estimatedImpact: '+25-35 points'
-          });
-          break;
-        default:
-          recommendations.push({
-            category,
-            title: `Improve ${category}`,
-            description: `Focus on enhancing your ${category.toLowerCase()} practices`,
-            priority: 'Medium',
-            estimatedImpact: '+10-20 points'
-          });
+  const generateRecommendations = (): string[] => {
+    const recs: string[] = [];
+    
+    // Category-specific recommendations
+    Object.entries(categoryScores).forEach(([category, categoryScore]) => {
+      if (categoryScore < 70) {
+        switch (category) {
+          case 'Business Foundation':
+            recs.push('Strengthen your business foundation with proper registration and licensing');
+            break;
+          case 'Banking & Finance':
+            recs.push('Improve financial documentation and banking relationships');
+            break;
+          case 'Business Credit Profile':
+            recs.push('Focus on building business credit history and monitoring');
+            break;
+          case 'Marketing Presence':
+            recs.push('Enhance your digital presence and marketing materials');
+            break;
+          case 'Documentation':
+            recs.push('Update and organize essential business documents');
+            break;
+          default:
+            break;
+        }
       }
-    }
-  });
+    });
 
-  return recommendations.slice(0, 5); // Top 5 recommendations
-};
-
-  const recommendations = getRecommendations();
-
-  const handleReturnToDashboard = async () => {
-    setIsSaving(true);
-    resetAssessment();
-    router.push('/dashboard');
-    const success = await saveAndUpdateDashboard();
-    
-    if (success) {
-      // Show success message briefly
-      toast.success('Assessment saved! Returning to dashboard...');
-      
-      // Reset assessment and navigate
-      setTimeout(() => {
-        resetAssessment();
-        router.push('/dashboard');
-      }, 1500);
-    } else {
-      toast.error('Error saving assessment. Please try again.');
-    }
-    
-    setIsSaving(false);
+    return recs.length > 0 ? recs : ['Continue maintaining excellent business practices!'];
   };
 
-  const handleTakeAgain = () => {
-    resetAssessment();
-    router.push('/assessment');
-  };
-
-   const handleDownloadReport = async () => {
-    try {
-      setIsGeneratingReport(true);
-      
-      // Get report data
-      const reportData = getReportData();
-      
-      // Generate PDF report
-      await ReportGenerator.generatePDFReport(state, userProfile);
-      
-      // Show success message
-      toast.success('Report downloaded successfully!');
-      
-    } catch (error) {
-      console.error('Error generating report:', error);
-      toast.error('Error generating report. Please try again.');
-    } finally {
-      setIsGeneratingReport(false);
-    }
-  };
+  const finalRecommendations = generateRecommendations();
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      {/* Header */}
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Assessment Complete! 🎉
-        </h1>
-        <p className="text-gray-600">
-          Here's your comprehensive fundability analysis and recommendations
-        </p>
-      </div>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6 rounded-t-lg">
+          <h2 className="text-3xl font-bold mb-2">🎉 Assessment Complete!</h2>
+          <p className="text-blue-100">Your comprehensive fundability analysis is ready</p>
+        </div>
 
-      {/* Score Overview */}
-      <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-          <div className="text-center lg:text-left">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              Your Fundability Score
-            </h2>
-            <div className="flex items-center justify-center lg:justify-start space-x-4 mb-4">
-              <span className={`text-6xl font-bold ${gradeInfo.color}`}>
-                {state.currentScore}
-              </span>
-              <div>
-                <p className={`text-xl font-semibold ${gradeInfo.color}`}>
-                  Grade: {gradeInfo.grade}
-                </p>
-                <p className="text-gray-600">{gradeInfo.label}</p>
+        <div className="p-6">
+          {/* Score Section */}
+          <div className="text-center mb-8">
+            <div className="relative inline-flex items-center justify-center w-32 h-32 mb-4">
+              <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 100 100">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="40"
+                  stroke="#e5e7eb"
+                  strokeWidth="8"
+                  fill="transparent"
+                />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="40"
+                  stroke={score >= 80 ? '#10b981' : score >= 60 ? '#f59e0b' : '#ef4444'}
+                  strokeWidth="8"
+                  fill="transparent"
+                  strokeDasharray={`${score * 2.51} 251`}
+                  strokeLinecap="round"
+                  className="transition-all duration-1000"
+                />
+              </svg>
+              <div className="absolute flex flex-col items-center">
+                <span className="text-4xl font-bold text-gray-900">{score}</span>
+                <span className="text-sm text-gray-600">out of 100</span>
               </div>
             </div>
-            <p className="text-gray-600">
-              Based on {Object.keys(state.responses).length} questions across {Object.keys(state.categoryScores).length} categories
-            </p>
+            <h3 className={`text-2xl font-bold ${getScoreColor(score)} mb-2`}>
+              {getGrade(score)}
+            </h3>
+            <p className="text-gray-600">Your Fundability Score</p>
           </div>
-          
-          <div className="flex justify-center">
-            <ScoreGauge score={state.currentScore} size={250} />
-          </div>
-        </div>
-      </div>
 
-      {/* Category Breakdown */}
-      <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
-        <h3 className="text-xl font-bold text-gray-900 mb-6">Category Breakdown</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {Object.entries(state.categoryScores).map(([category, score]) => (
-            <div key={category} className="p-4 bg-gray-50 rounded-lg">
-              <div className="flex justify-between items-center mb-2">
-                <h4 className="font-medium text-gray-900">{category}</h4>
-                <span className={`font-bold ${getGrade(score).color}`}>
-                  {Math.round(score)}
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-3">
-                <div
-                  className="bg-blue-500 h-3 rounded-full transition-all duration-500"
-                  style={{ width: `${Math.min(score, 100)}%` }}
-                ></div>
-              </div>
-              <p className="text-sm text-gray-600 mt-1">
-                {getGrade(score).label}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Recommendations */}
-      <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
-        <h3 className="text-xl font-bold text-gray-900 mb-6">
-          🎯 Personalized Recommendations
-        </h3>
-        
-        {recommendations.length > 0 ? (
-          <div className="space-y-4">
-            {recommendations.map((rec, index) => (
-              <div key={index} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex justify-between items-start mb-2">
-                  <h4 className="font-semibold text-gray-900">{rec.title}</h4>
-                  <div className="flex space-x-2">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      rec.priority === 'Critical' ? 'bg-red-100 text-red-800' :
-                      rec.priority === 'High' ? 'bg-orange-100 text-orange-800' :
-                      'bg-blue-100 text-blue-800'
-                    }`}>
-                      {rec.priority}
-                    </span>
-                    <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
-                      {rec.estimatedImpact}
+          {/* Category Breakdown */}
+          <div className="mb-8">
+            <h4 className="text-xl font-semibold mb-4">Category Breakdown</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {Object.entries(categoryScores).map(([category, categoryScore]) => (
+                <div key={category} className="bg-gray-50 p-4 rounded-lg">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-medium text-gray-900">{category}</span>
+                    <span className={`font-bold ${getScoreColor(categoryScore)}`}>
+                      {Math.round(categoryScore)}
                     </span>
                   </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className={`h-2 rounded-full transition-all duration-500 ${
+                        categoryScore >= 80 ? 'bg-green-500' : 
+                        categoryScore >= 60 ? 'bg-yellow-500' : 
+                        categoryScore >= 40 ? 'bg-orange-500' : 'bg-red-500'
+                      }`}
+                      style={{ width: `${categoryScore}%` }}
+                    />
+                  </div>
                 </div>
-                <p className="text-gray-600 mb-2">{rec.description}</p>
-                <p className="text-sm text-gray-500">Category: {rec.category}</p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        ) : (
-          <div className="text-center py-8">
-            <div className="text-6xl mb-4">🌟</div>
-            <h4 className="text-lg font-semibold text-gray-900 mb-2">
-              Excellent Work!
-            </h4>
-            <p className="text-gray-600">
-              Your business is in great shape across all categories. Keep up the excellent work!
-            </p>
-          </div>
-        )}
-      </div>
 
-      {/* Action Buttons */}
-      <div className="bg-white rounded-lg shadow-lg p-8">
-        <h3 className="text-xl font-bold text-gray-900 mb-6">What's Next?</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button
-            onClick={handleReturnToDashboard}
-            disabled={isSaving}
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSaving ? (
-              <div className="flex items-center justify-center">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Saving...
-              </div>
-            ) : (
-              'Return to Dashboard'
-            )}
-          </button>
-          
-          <button
-            onClick={handleTakeAgain}
-            className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium"
-          >
-            Take Assessment Again
-          </button>
-          
-          <button
-            onClick={handleDownloadReport}
-            disabled={isGeneratingReport}
-            className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isGeneratingReport ? (
-              <div className="flex items-center justify-center">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Generating...
-              </div>
-            ) : (
-              'Download Report'
-            )}
-          </button>
-        </div>
-        
-        {/* Help Text */}
-        <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-          <h4 className="font-medium text-blue-900 mb-2">💡 What happens next?</h4>
-          <ul className="text-sm text-blue-800 space-y-1">
-            <li>• <strong>Return to Dashboard:</strong> Save your results and see updated scores</li>
-            <li>• <strong>Take Again:</strong> Retake the assessment to improve your score</li>
-            <li>• <strong>Download Report:</strong> Get a comprehensive PDF report for your records</li>
-          </ul>
+          {/* Recommendations */}
+          <div className="mb-8">
+            <h4 className="text-xl font-semibold mb-4">📋 Recommended Actions</h4>
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <ul className="space-y-2">
+                {finalRecommendations.map((rec, index) => (
+                  <li key={index} className="flex items-start">
+                    <span className="text-blue-600 mr-2">•</span>
+                    <span className="text-blue-800">{rec}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            <button
+              onClick={onSaveAndExit}
+              className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
+              Save & Go to Dashboard
+            </button>
+            <button
+              onClick={() => window.print()}
+              className="flex-1 bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 transition-colors font-medium"
+            >
+              Download Report
+            </button>
+            <button
+              onClick={() => router.push('/assessment')}
+              className="flex-1 bg-purple-600 text-white py-3 px-6 rounded-lg hover:bg-purple-700 transition-colors font-medium"
+            >
+              Take New Assessment
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 }
-

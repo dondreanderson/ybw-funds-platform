@@ -149,10 +149,10 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(assessmentReducer, initialState);
 
   const setResponse = (questionId: string, value: any) => {
-    dispatch({ type: 'SET_RESPONSE', questionId, value });
-    // Trigger score calculation after setting response
-    setTimeout(() => calculateScore(), 100);
-  };
+  dispatch({ type: 'SET_RESPONSE', questionId, value });
+  // Trigger score calculation after setting response
+  setTimeout(() => calculateScore(), 100);
+};
 
   const nextStep = () => {
     dispatch({ type: 'NEXT_STEP' });
@@ -225,12 +225,12 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'RESET_ASSESSMENT' });
   };
 
- const saveAndUpdateDashboard = async (): Promise<boolean> => {
+  const saveAndUpdateDashboard = async (): Promise<boolean> => {
   try {
     console.log('💾 Saving assessment and updating dashboard...');
     dispatch({ type: 'SET_LOADING', loading: true });
 
-    // Save to localStorage immediately
+    // Save to localStorage immediately for backup
     const assessmentData = {
       responses: state.responses,
       currentScore: state.currentScore,
@@ -240,35 +240,52 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
     };
 
     localStorage.setItem('lastAssessmentResults', JSON.stringify(assessmentData));
-    console.log('✅ Saved to localStorage:', assessmentData);
+    console.log('✅ Saved to localStorage');
 
-    // Try to save to database
     try {
-      const { data: userProfile } = await UserService.getCurrentUserProfile();
-      
-      if (userProfile) {
-        console.log('👤 Updating user profile...');
-        await UserService.updateFundabilityScore(userProfile.id, state.currentScore);
-        await UserService.incrementAssessmentCount(userProfile.id);
-        console.log('✅ Database updated successfully');
+      // Save to database
+      const response = await fetch('/api/fundability/save-assessment', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          responses: state.responses,
+          currentScore: state.currentScore,
+          categoryScores: state.categoryScores
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-    } catch (dbError) {
-      console.warn('⚠️ Database update failed, but localStorage saved:', dbError);
-      // Continue anyway since we have localStorage
+
+      const result = await response.json();
+      
+      if (result.success) {
+        if (result.fallback) {
+          console.log('⚠️ Fallback save:', result.message);
+        } else {
+          console.log('✅ Database save successful:', result.message);
+          
+          // Store the user ID for future use
+          if (result.data?.userId) {
+            localStorage.setItem('demoUserId', result.data.userId);
+          }
+        }
+      } else {
+        throw new Error(result.error || 'Save failed');
+      }
+
+    } catch (apiError) {
+      console.warn('⚠️ API call failed, but localStorage saved:', apiError);
+      // Don't show error to user since localStorage backup works
     }
 
-    // Trigger multiple refresh mechanisms
-    console.log('🔔 Triggering dashboard refresh...');
-    
-    // Immediate refresh
+    // Trigger dashboard refresh
     window.dispatchEvent(new CustomEvent('dashboardRefresh'));
     
-    // Delayed refresh to ensure localStorage is processed
-    setTimeout(() => {
-      window.dispatchEvent(new CustomEvent('dashboardRefresh'));
-    }, 100);
-
-    // Storage event for other tabs
+    // Also trigger storage event for cross-tab updates
     window.dispatchEvent(new StorageEvent('storage', {
       key: 'lastAssessmentResults',
       newValue: JSON.stringify(assessmentData)
@@ -276,8 +293,9 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
 
     dispatch({ type: 'SET_LOADING', loading: false });
     return true;
+    
   } catch (error) {
-    console.error('❌ Error saving assessment:', error);
+    console.error('❌ Critical error in save process:', error);
     dispatch({ type: 'SET_LOADING', loading: false });
     return false;
   }

@@ -1,48 +1,19 @@
 import { supabase } from '@/lib/supabase';
-import type { UserProfile, BusinessProfile, DatabaseResponse } from '@/lib/types/core';
+import type { UserProfile, DatabaseResponse } from '@/lib/types/core';
 
 export class UserService {
-  // Get current user profile with business information
-  static async getCurrentUserProfile(): Promise<DatabaseResponse<UserProfile & { business_profile?: BusinessProfile }>> {
+  static async getCurrentUserProfile(): Promise<DatabaseResponse<UserProfile>> {
     try {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       
       if (authError || !user) {
-        return { data: null, error: new Error('No authenticated user') };
+        return { data: null, error: new Error('Not authenticated') };
       }
 
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select(`
-          *,
-          business_profiles (*)
-        `)
-        .eq('id', user.id)
-        .single();
-
-      if (data && data.business_profiles && Array.isArray(data.business_profiles)) {
-        return {
-          data: {
-            ...data,
-            business_profile: data.business_profiles[0] || null
-          },
-          error: null
-        };
-      }
-
-      return { data, error };
-    } catch (error) {
-      return { data: null, error: error as Error };
-    }
-  }
-
-  // Get user profile by ID
-  static async getUserProfile(userId: string): Promise<DatabaseResponse<UserProfile>> {
-    try {
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
-        .eq('id', userId)
+        .eq('id', user.id)
         .single();
 
       return { data, error };
@@ -51,66 +22,15 @@ export class UserService {
     }
   }
 
-  // Update user profile
-  static async updateUserProfile(
-    userId: string,
-    updates: Partial<UserProfile>
-  ): Promise<DatabaseResponse<UserProfile>> {
+  static async updateFundabilityScore(userId: string, score: number): Promise<DatabaseResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('user_profiles')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', userId)
-        .select()
-        .single();
-
-      return { data, error };
-    } catch (error) {
-      return { data: null, error: error as Error };
-    }
-  }
-
-  // Create or update business profile
-  static async upsertBusinessProfile(
-    userId: string,
-    profileData: Partial<BusinessProfile>
-  ): Promise<DatabaseResponse<BusinessProfile>> {
-    try {
-      const { data, error } = await supabase
-        .from('business_profiles')
-        .upsert({
-          user_id: userId,
-          ...profileData,
-          updated_at: new Date().toISOString()
-        })
-        .select()
-        .single();
-
-      return { data, error };
-    } catch (error) {
-      return { data: null, error: error as Error };
-    }
-  }
-
-  // Update fundability score
-  static async updateFundabilityScore(
-    userId: string,
-    score: number
-  ): Promise<DatabaseResponse<UserProfile>> {
-    try {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .update({
+        .update({ 
           fundability_score: score,
-          last_assessment_date: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          last_assessment_date: new Date().toISOString()
         })
-        .eq('id', userId)
-        .select()
-        .single();
+        .eq('id', userId);
 
       return { data, error };
     } catch (error) {
@@ -118,22 +38,21 @@ export class UserService {
     }
   }
 
-  // Increment assessment count
-  static async incrementAssessmentCount(userId: string): Promise<DatabaseResponse<UserProfile>> {
+  static async incrementAssessmentCount(userId: string): Promise<DatabaseResponse<any>> {
     try {
-      const { data, error } = await supabase.rpc('increment_assessment_count', {
-        user_id: userId
-      });
+      // Get current count
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('assessment_count')
+        .eq('id', userId)
+        .single();
 
-      if (error) {
-        // Fallback: manually increment
-        const { data: profile } = await this.getUserProfile(userId);
-        if (profile) {
-          return await this.updateUserProfile(userId, {
-            assessment_count: (profile.assessment_count || 0) + 1
-          });
-        }
-      }
+      const newCount = (profile?.assessment_count || 0) + 1;
+
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .update({ assessment_count: newCount })
+        .eq('id', userId);
 
       return { data, error };
     } catch (error) {
