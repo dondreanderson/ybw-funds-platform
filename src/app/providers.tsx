@@ -1,6 +1,7 @@
 'use client'
 
 import { SessionProvider } from 'next-auth/react'
+import { AssessmentProvider } from '@/contexts/AssessmentContext'
 import { ReactNode } from 'react'
 
 interface ProvidersProps {
@@ -10,7 +11,10 @@ interface ProvidersProps {
 export default function Providers({ children }: ProvidersProps) {
   return (
     <SessionProvider>
-      {children}
+      <AssessmentProvider>
+        {children}
+      </AssessmentProvider>
     </SessionProvider>
   )
 }
+        

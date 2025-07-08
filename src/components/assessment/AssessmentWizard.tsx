@@ -1,25 +1,53 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAssessment } from '@/contexts/AssessmentContext';
 import { assessmentQuestions } from '@/data/assessmentQuestions';
 import { QuestionCard } from './QuestionCard';
 import { AssessmentProgress } from './AssessmentProgress';
 import { AssessmentNavigation } from './AssessmentNavigation';
 import { ScoreTracker } from './ScoreTracker';
+import { AssessmentResults } from './AssessmentResults';
+import { useRouter } from 'next/navigation';
 
 export function AssessmentWizard() {
-  const { state, dispatch } = useAssessment();
+  const { state, dispatch, saveAndUpdateDashboard } = useAssessment();
+  const [showResults, setShowResults] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     // Initialize assessment with questions
     dispatch({ type: 'INITIALIZE', questions: assessmentQuestions });
   }, [dispatch]);
 
+  const handleComplete = async () => {
+    setShowResults(true);
+  };
+
+  const handleSaveAndExit = async () => {
+    const success = await saveAndUpdateDashboard();
+  router.push('/dashboard');
+  };
+
+  if (showResults) {
+    return (
+      <AssessmentResults
+        score={state.currentScore}
+        categoryScores={state.categoryScores}
+        recommendations={[]} // We'll generate these based on scores
+        onClose={() => setShowResults(false)}
+        onSaveAndExit={handleSaveAndExit}
+      />
+    );
+  }
+
   if (state.questions.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading assessment questions...</p>
+        </div>
       </div>
     );
   }
@@ -27,7 +55,7 @@ export function AssessmentWizard() {
   const currentQuestion = state.questions[state.currentStep];
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="max-w-7xl mx-auto p-6">
       {/* Header */}
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -39,21 +67,21 @@ export function AssessmentWizard() {
       </div>
 
       {/* Progress Bar */}
-      <AssessmentProgress
-        currentStep={state.currentStep}
-        totalSteps={state.totalSteps}
-        score={state.currentScore}
-      />
+      <div className="mb-8">
+        <AssessmentProgress
+          currentStep={state.currentStep}
+          totalSteps={state.totalSteps}
+          score={state.currentScore}
+        />
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Question Area */}
         <div className="lg:col-span-2">
           <QuestionCard
             question={currentQuestion}
             value={state.responses[currentQuestion.id]}
-            onChange={(value) => {
-              // This will be handled by context
-            }}
+            onChange={() => {}} // Handled by QuestionCard internally
           />
           
           <AssessmentNavigation
@@ -61,6 +89,7 @@ export function AssessmentWizard() {
             totalSteps={state.totalSteps}
             canGoNext={state.responses[currentQuestion.id] !== undefined}
             isComplete={state.isComplete}
+            onComplete={handleComplete}
           />
         </div>
 

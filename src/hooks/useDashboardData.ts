@@ -94,122 +94,116 @@ export function useDashboardData() {
     };
   }, []);
 
-  const loadDashboardData = async () => {
-    try {
-      console.log('📊 Loading dashboard data...');
-      setData(prev => ({ ...prev, loading: true, error: null }));
+const loadDashboardData = async () => {
+  try {
+    console.log('📊 Loading dashboard data...');
+    setData(prev => ({ ...prev, loading: true, error: null }));
 
-      // Always try to get fresh data first
-      let userProfile = null;
-      let latestAssessment = null;
+    let userProfile = null;
+    let latestAssessment = null;
 
-      // Try to get real user data
-      const { data: realUserProfile, error: userError } = await UserService.getCurrentUserProfile();
+    // Try to get the demo user ID from localStorage
+    const demoUserId = localStorage.getItem('demoUserId');
+    
+    if (demoUserId) {
+      console.log('🔍 Loading data for user:', demoUserId);
       
-      if (realUserProfile && !userError) {
-        console.log('✅ Got real user profile:', realUserProfile);
-        userProfile = realUserProfile;
-
-        // Try to get real assessment data
-        const { data: realAssessment } = await EnhancedDatabaseService.getLatestAssessment(userProfile.id);
+      try {
+        // Try to get real assessment data from database
+        const { data: realAssessment } = await EnhancedDatabaseService.getLatestAssessment(demoUserId);
         if (realAssessment) {
-          console.log('✅ Got real assessment data:', realAssessment);
+          console.log('✅ Got real assessment from database:', realAssessment);
           latestAssessment = realAssessment;
         }
-      }
 
-      // If no real data, check localStorage for recent results
-      if (!userProfile || !latestAssessment) {
-        const recentResults = localStorage.getItem('lastAssessmentResults');
-        if (recentResults) {
-          try {
-            const parsed = JSON.parse(recentResults);
-            console.log('📱 Using localStorage data:', parsed);
-            
-            // Create user profile from localStorage or use fallback
-            userProfile = userProfile || {
-              id: 'demo-user',
-              email: 'demo@ybwfunds.com',
-              name: 'Demo User',
-              business_name: 'Demo Business',
-              fundability_score: parsed.currentScore,
-              assessment_count: 1,
-              last_assessment_date: parsed.completedAt,
-              created_at: new Date().toISOString(),
-              updated_at: parsed.completedAt
-            };
-
-            // Create assessment from localStorage
-            latestAssessment = {
-              id: 'local-assessment',
-              user_id: userProfile.id,
-              overall_score: parsed.currentScore,
-              category_scores: parsed.categoryScores,
-              completion_percentage: 100,
-              status: 'completed',
-              assessment_version: '2.0',
-              created_at: parsed.completedAt,
-              updated_at: parsed.completedAt
-            };
-          } catch (error) {
-            console.error('Error parsing localStorage data:', error);
+        // Try to get real user profile from database
+        const profileResponse = await fetch('/api/user/profile?userId=' + demoUserId);
+        if (profileResponse.ok) {
+          const profileData = await profileResponse.json();
+          if (profileData.success) {
+            userProfile = profileData.data;
+            console.log('✅ Got real user profile from database');
           }
         }
+      } catch (dbError) {
+        console.warn('Database query failed, using localStorage:', dbError);
       }
+    }
 
-      // Final fallback to realAssessmentService
-      if (!userProfile || !latestAssessment) {
-        console.log('🔄 Using fallback assessment service...');
-        const fallbackAssessment = await realAssessmentService.getLatestAssessment('demo-user');
-        
-        if (fallbackAssessment) {
+    // If no database data, check localStorage for recent results
+    if (!userProfile || !latestAssessment) {
+      const recentResults = localStorage.getItem('lastAssessmentResults');
+      if (recentResults) {
+        try {
+          const parsed = JSON.parse(recentResults);
+          console.log('📱 Using localStorage data as fallback');
+          
+          // Create user profile from localStorage
           userProfile = userProfile || {
-            id: 'demo-user',
+            id: demoUserId || 'demo-user',
             email: 'demo@ybwfunds.com',
             name: 'Demo User',
             business_name: 'Demo Business',
-            fundability_score: fallbackAssessment.overall_score,
+            fundability_score: parsed.currentScore,
+            assessment_count: 1,
+            last_assessment_date: parsed.completedAt,
             created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            updated_at: parsed.completedAt
           };
 
-          latestAssessment = {
-            ...fallbackAssessment,
-            updated_at: fallbackAssessment.created_at || new Date().toISOString()
+          // Create assessment from localStorage
+          latestAssessment = latestAssessment || {
+            id: 'local-assessment',
+            user_id: userProfile.id,
+            overall_score: parsed.currentScore,
+            category_scores: parsed.categoryScores,
+            completion_percentage: 100,
+            status: 'completed',
+            assessment_version: '2.0',
+            created_at: parsed.completedAt,
+            updated_at: parsed.completedAt
           };
+        } catch (error) {
+          console.error('Error parsing localStorage data:', error);
         }
       }
-
-      // Calculate stats
-      const currentScore = latestAssessment?.overall_score || 0;
-      const lastAssessmentDate = latestAssessment?.created_at || null;
-
-      console.log('📈 Final dashboard data:', { currentScore, lastAssessmentDate });
-
-      setData({
-        userProfile: userProfile,
-        latestAssessment: latestAssessment,
-        assessmentHistory: latestAssessment ? [latestAssessment] : [],
-        scoreTrend: [],
-        loading: false,
-        error: null,
-        stats: {
-          totalAssessments: 1,
-          currentScore: currentScore,
-          scoreChange: 0, // We'll calculate this later with history
-          lastAssessmentDate
-        }
-      });
-
-    } catch (error) {
-      console.error('❌ Error loading dashboard data:', error);
-      setData(prev => ({
-        ...prev,
-        loading: false,
-        error: 'Unable to load dashboard data'
-      }));
     }
-  };
+
+    // Calculate stats
+    const currentScore = latestAssessment?.overall_score || 0;
+    const lastAssessmentDate = latestAssessment?.created_at || null;
+
+    console.log('📈 Final dashboard data loaded:', { 
+      currentScore, 
+      lastAssessmentDate,
+      source: latestAssessment?.id?.includes('local') ? 'localStorage' : 'database'
+    });
+
+    setData({
+      userProfile: userProfile,
+      latestAssessment: latestAssessment,
+      assessmentHistory: latestAssessment ? [latestAssessment] : [],
+      scoreTrend: [],
+      loading: false,
+      error: null,
+      stats: {
+        totalAssessments: 1,
+        currentScore: currentScore,
+        scoreChange: 0,
+        lastAssessmentDate
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error loading dashboard data:', error);
+    setData(prev => ({
+      ...prev,
+      loading: false,
+      error: 'Unable to load dashboard data'
+    }));
+  }
+};
+
 
   const refresh = () => {
     console.log('🔄 Manual refresh triggered');

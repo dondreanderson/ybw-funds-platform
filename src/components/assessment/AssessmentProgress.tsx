@@ -9,34 +9,47 @@ interface AssessmentProgressProps {
 }
 
 export function AssessmentProgress({ currentStep, totalSteps, score }: AssessmentProgressProps) {
-  const progressPercentage = totalSteps > 0 ? ((currentStep + 1) / totalSteps) * 100 : 0;
-
+  const progressPercentage = ((currentStep + 1) / totalSteps) * 100;
+  
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900">Assessment Progress</h3>
-          <p className="text-gray-600">
-            Question {currentStep + 1} of {totalSteps}
-          </p>
-        </div>
-        <div className="text-right">
-          <p className="text-2xl font-bold text-blue-600">{score}</p>
-          <p className="text-sm text-gray-600">Current Score</p>
-        </div>
+    <div className="bg-white p-6 rounded-lg shadow-sm border">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold text-gray-900">Assessment Progress</h3>
+        <span className="text-sm text-gray-500">
+          {currentStep + 1} of {totalSteps} questions
+        </span>
       </div>
-
+      
       {/* Progress Bar */}
       <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
-        <div
-          className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-300 ease-out"
+        <div 
+          className="bg-blue-600 h-3 rounded-full transition-all duration-300 ease-in-out"
           style={{ width: `${progressPercentage}%` }}
-        ></div>
+        />
       </div>
-
-      <div className="flex justify-between text-sm text-gray-600">
-        <span>{Math.round(progressPercentage)}% Complete</span>
-        <span>{totalSteps - currentStep - 1} questions remaining</span>
+      
+      {/* Score Display */}
+      <div className="flex justify-between items-center">
+        <div className="text-sm text-gray-600">
+          Current Score: <span className="font-semibold text-blue-600">{score}/100</span>
+        </div>
+        <div className="text-sm text-gray-600">
+          {Math.round(progressPercentage)}% Complete
+        </div>
+      </div>
+      
+      {/* Score Bar */}
+      <div className="mt-3">
+        <div className="w-full bg-gray-200 rounded-full h-2">
+          <div 
+            className={`h-2 rounded-full transition-all duration-300 ease-in-out ${
+              score >= 80 ? 'bg-green-500' : 
+              score >= 60 ? 'bg-yellow-500' : 
+              score >= 40 ? 'bg-orange-500' : 'bg-red-500'
+            }`}
+            style={{ width: `${score}%` }}
+          />
+        </div>
       </div>
     </div>
   );
