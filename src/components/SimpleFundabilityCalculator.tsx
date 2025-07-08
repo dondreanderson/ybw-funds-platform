@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { QuickRegistration } from '@/components/auth/QuickRegistration'
 
 interface CalculatorProps {
   onClose?: () => void
@@ -47,6 +48,7 @@ export default function SimpleFundabilityCalculator({
   })
   const [score, setScore] = useState(0)
   const [showResults, setShowResults] = useState(false)
+  const [showRegistration, setShowRegistration] = useState(false) // ✅ Added registration state
   const [isCalculating, setIsCalculating] = useState(false)
 
   const questions = [
@@ -226,137 +228,160 @@ export default function SimpleFundabilityCalculator({
     }))
   }
 
- const isAnswered = (): boolean => {
-  const answer = answers[currentQuestion.id as keyof SimpleAnswers]
-  if (currentQuestion.type === 'boolean') return answer !== null
-  if (currentQuestion.type === 'select') return answer !== '' && answer !== null
-  if (currentQuestion.type === 'number' || currentQuestion.type === 'revenue') {
-    return answer !== null && typeof answer === 'number' && answer >= 0
+  const isAnswered = (): boolean => {
+    const answer = answers[currentQuestion.id as keyof SimpleAnswers]
+    if (currentQuestion.type === 'boolean') return answer !== null
+    if (currentQuestion.type === 'select') return answer !== '' && answer !== null
+    if (currentQuestion.type === 'number' || currentQuestion.type === 'revenue') {
+      return answer !== null && typeof answer === 'number' && answer >= 0
+    }
+    return true
   }
-  return true
-}
+
+  // ✅ Handler for creating account with calculator results
+  const handleCreateAccount = () => {
+    const calculatorResults = {
+      score,
+      answers,
+      recommendations: getRecommendations(),
+      completedAt: new Date().toISOString()
+    };
+    localStorage.setItem('pendingCalculatorResults', JSON.stringify(calculatorResults));
+    setShowRegistration(true);
+  };
 
   if (showResults) {
     const gradeInfo = getGrade(score)
     const recommendations = getRecommendations()
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6 rounded-t-lg">
-            <h2 className="text-2xl font-bold mb-2">
-              {isTrialMode ? '🆓 Your Free Fundability Score' : '📊 Your Fundability Score'}
-            </h2>
-            <p className="text-blue-100">
-              {isTrialMode ? 'Get the full assessment for detailed insights!' : 'Your business funding readiness analysis'}
-            </p>
-          </div>
+      <>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6 rounded-t-lg">
+              <h2 className="text-2xl font-bold mb-2">
+                {isTrialMode ? '🆓 Your Free Fundability Score' : '📊 Your Fundability Score'}
+              </h2>
+              <p className="text-blue-100">
+                {isTrialMode ? 'Get the full assessment for detailed insights!' : 'Your business funding readiness analysis'}
+              </p>
+            </div>
 
-          <div className="p-6">
-            {/* Score Display */}
-            <div className="text-center mb-8">
-              <div className="relative inline-flex items-center justify-center w-32 h-32 mb-4">
-                <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 100 100">
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    stroke="#e5e7eb"
-                    strokeWidth="8"
-                    fill="transparent"
-                  />
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    stroke={score >= 65 ? '#10b981' : score >= 50 ? '#f59e0b' : '#ef4444'}
-                    strokeWidth="8"
-                    fill="transparent"
-                    strokeDasharray={`${score * 2.51} 251`}
-                    strokeLinecap="round"
-                    className="transition-all duration-1000"
-                  />
-                </svg>
-                <div className="absolute flex flex-col items-center">
-                  <span className="text-3xl font-bold text-gray-900">{score}</span>
-                  <span className="text-sm text-gray-600">out of 100</span>
+            <div className="p-6">
+              {/* Score Display */}
+              <div className="text-center mb-8">
+                <div className="relative inline-flex items-center justify-center w-32 h-32 mb-4">
+                  <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 100 100">
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      stroke="#e5e7eb"
+                      strokeWidth="8"
+                      fill="transparent"
+                    />
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      stroke={score >= 65 ? '#10b981' : score >= 50 ? '#f59e0b' : '#ef4444'}
+                      strokeWidth="8"
+                      fill="transparent"
+                      strokeDasharray={`${score * 2.51} 251`}
+                      strokeLinecap="round"
+                      className="transition-all duration-1000"
+                    />
+                  </svg>
+                  <div className="absolute flex flex-col items-center">
+                    <span className="text-3xl font-bold text-gray-900">{score}</span>
+                    <span className="text-sm text-gray-600">out of 100</span>
+                  </div>
+                </div>
+                
+                <h3 className={`text-2xl font-bold ${gradeInfo.color} mb-2`}>
+                  Grade {gradeInfo.grade} - {gradeInfo.label}
+                </h3>
+                <p className="text-gray-600">Your Fundability Score</p>
+              </div>
+
+              {/* Recommendations */}
+              <div className="mb-8">
+                <h4 className="text-lg font-semibold mb-4">
+                  🎯 Top Recommendations {isTrialMode ? '(Preview)' : ''}
+                </h4>
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <ul className="space-y-2">
+                    {recommendations.slice(0, isTrialMode ? 3 : recommendations.length).map((rec, index) => (
+                      <li key={index} className="flex items-start">
+                        <span className="text-blue-600 mr-2">•</span>
+                        <span className="text-blue-800">{rec}</span>
+                      </li>
+                    ))}
+                    {isTrialMode && recommendations.length > 3 && (
+                      <li className="text-blue-600 font-medium">
+                        + {recommendations.length - 3} more recommendations in full assessment
+                      </li>
+                    )}
+                  </ul>
                 </div>
               </div>
-              
-              <h3 className={`text-2xl font-bold ${gradeInfo.color} mb-2`}>
-                Grade {gradeInfo.grade} - {gradeInfo.label}
-              </h3>
-              <p className="text-gray-600">Your Fundability Score</p>
-            </div>
 
-            {/* Recommendations */}
-            <div className="mb-8">
-              <h4 className="text-lg font-semibold mb-4">
-                🎯 Top Recommendations {isTrialMode ? '(Preview)' : ''}
-              </h4>
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <ul className="space-y-2">
-                  {recommendations.slice(0, isTrialMode ? 3 : recommendations.length).map((rec, index) => (
-                    <li key={index} className="flex items-start">
-                      <span className="text-blue-600 mr-2">•</span>
-                      <span className="text-blue-800">{rec}</span>
-                    </li>
-                  ))}
-                  {isTrialMode && recommendations.length > 3 && (
-                    <li className="text-blue-600 font-medium">
-                      + {recommendations.length - 3} more recommendations in full assessment
-                    </li>
-                  )}
-                </ul>
+              {/* Call to Action */}
+              <div className="flex flex-col sm:flex-row gap-4">
+                {isTrialMode ? (
+                  <>
+                    <button
+                      onClick={() => router.push('/assessment')}
+                      className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                    >
+                      🚀 Get Full Assessment (125+ Criteria)
+                    </button>
+                    {/* ✅ Updated signup button with registration handler */}
+                    <button
+                      onClick={handleCreateAccount}
+                      className="flex-1 bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 transition-colors font-medium"
+                    >
+                      📊 Create Free Account
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => {
+                        localStorage.setItem('simpleAssessmentResults', JSON.stringify({
+                          score,
+                          answers,
+                          recommendations: getRecommendations(),
+                          completedAt: new Date().toISOString()
+                        }))
+                        if (onClose) onClose()
+                      }}
+                      className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                    >
+                      Save & Continue
+                    </button>
+                    <button
+                      onClick={() => window.print()}
+                      className="flex-1 bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 transition-colors font-medium"
+                    >
+                      📄 Print Results
+                    </button>
+                  </>
+                )}
               </div>
-            </div>
-
-            {/* Call to Action */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              {isTrialMode ? (
-                <>
-                  <button
-                    onClick={() => router.push('/assessment')}
-                    className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                  >
-                    🚀 Get Full Assessment (125+ Criteria)
-                  </button>
-                  <button
-                    onClick={() => router.push('/auth/signup')}
-                    className="flex-1 bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 transition-colors font-medium"
-                  >
-                    📊 Create Free Account
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={() => {
-                      localStorage.setItem('simpleAssessmentResults', JSON.stringify({
-                        score,
-                        answers,
-                        recommendations: getRecommendations(),
-                        completedAt: new Date().toISOString()
-                      }))
-                      if (onClose) onClose()
-                    }}
-                    className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                  >
-                    Save & Continue
-                  </button>
-                  <button
-                    onClick={() => window.print()}
-                    className="flex-1 bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 transition-colors font-medium"
-                  >
-                    📄 Print Results
-                  </button>
-                </>
-              )}
             </div>
           </div>
         </div>
-      </div>
+
+        {/* ✅ Registration Modal */}
+        {showRegistration && (
+          <QuickRegistration
+            calculatorResults={JSON.parse(localStorage.getItem('pendingCalculatorResults') || 'null')}
+            onClose={() => setShowRegistration(false)}
+          />
+        )}
+      </>
     )
   }
 
