@@ -1,18 +1,35 @@
 {
   "..\\node_modules\\@supabase\\auth-js\\dist\\module\\lib\\helpers.js -> @supabase/node-fetch": {
-    "id": "..\\node_modules\\@supabase\\auth-js\\dist\\module\\lib\\helpers.js -> @supabase/node-fetch",
+    "id": 485,
     "files": []
   },
   "..\\node_modules\\@supabase\\functions-js\\dist\\module\\helper.js -> @supabase/node-fetch": {
-    "id": "..\\node_modules\\@supabase\\functions-js\\dist\\module\\helper.js -> @supabase/node-fetch",
+    "id": 485,
     "files": []
   },
   "..\\node_modules\\@supabase\\realtime-js\\dist\\module\\RealtimeClient.js -> @supabase/node-fetch": {
-    "id": "..\\node_modules\\@supabase\\realtime-js\\dist\\module\\RealtimeClient.js -> @supabase/node-fetch",
+    "id": 485,
     "files": []
   },
   "..\\node_modules\\@supabase\\storage-js\\dist\\module\\lib\\helpers.js -> @supabase/node-fetch": {
-    "id": "..\\node_modules\\@supabase\\storage-js\\dist\\module\\lib\\helpers.js -> @supabase/node-fetch",
+    "id": 485,
+    "files": []
+  },
+  "..\\node_modules\\jspdf\\dist\\jspdf.es.min.js -> canvg": {
+    "id": 2396,
+    "files": [
+      "static/chunks/bc98253f.1fc75cbf78960dcb.js",
+      "static/chunks/969.a6698d19f59cc82a.js"
+    ]
+  },
+  "..\\node_modules\\jspdf\\dist\\jspdf.es.min.js -> dompurify": {
+    "id": 8848,
+    "files": [
+      "static/chunks/848.913f44d95705dd45.js"
+    ]
+  },
+  "..\\node_modules\\jspdf\\dist\\jspdf.es.min.js -> html2canvas": {
+    "id": 4457,
     "files": []
   }
 }

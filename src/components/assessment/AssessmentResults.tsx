@@ -1,13 +1,19 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAssessment } from '@/contexts/AssessmentContext';
 import { ScoreGauge } from '@/components/dashboard/ScoreGauge';
+import { ReportGenerator } from '@/lib/services/reportGenerator';
+import { useDashboardData } from '@/hooks/useDashboardData';
+import { toast } from '@/components/ui/Toast';
 
 export function AssessmentResults() {
-  const { state, resetAssessment } = useAssessment();
+  const { state, resetAssessment, saveAndUpdateDashboard, getReportData } = useAssessment();
+  const { userProfile } = useDashboardData();
   const router = useRouter();
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const getGrade = (score: number) => {
     if (score >= 90) return { grade: 'A', label: 'Excellent', color: 'text-green-600' };
@@ -81,14 +87,52 @@ export function AssessmentResults() {
 
   const recommendations = getRecommendations();
 
-  const handleReturnToDashboard = () => {
+  const handleReturnToDashboard = async () => {
+    setIsSaving(true);
     resetAssessment();
     router.push('/dashboard');
+    const success = await saveAndUpdateDashboard();
+    
+    if (success) {
+      // Show success message briefly
+      toast.success('Assessment saved! Returning to dashboard...');
+      
+      // Reset assessment and navigate
+      setTimeout(() => {
+        resetAssessment();
+        router.push('/dashboard');
+      }, 1500);
+    } else {
+      toast.error('Error saving assessment. Please try again.');
+    }
+    
+    setIsSaving(false);
   };
 
   const handleTakeAgain = () => {
     resetAssessment();
     router.push('/assessment');
+  };
+
+   const handleDownloadReport = async () => {
+    try {
+      setIsGeneratingReport(true);
+      
+      // Get report data
+      const reportData = getReportData();
+      
+      // Generate PDF report
+      await ReportGenerator.generatePDFReport(state, userProfile);
+      
+      // Show success message
+      toast.success('Report downloaded successfully!');
+      
+    } catch (error) {
+      console.error('Error generating report:', error);
+      toast.error('Error generating report. Please try again.');
+    } finally {
+      setIsGeneratingReport(false);
+    }
   };
 
   return (
@@ -207,24 +251,53 @@ export function AssessmentResults() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <button
             onClick={handleReturnToDashboard}
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            disabled={isSaving}
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Return to Dashboard
+            {isSaving ? (
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Saving...
+              </div>
+            ) : (
+              'Return to Dashboard'
+            )}
           </button>
+          
           <button
             onClick={handleTakeAgain}
             className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium"
           >
             Take Assessment Again
           </button>
+          
           <button
-            onClick={() => window.print()}
-            className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors font-medium"
+            onClick={handleDownloadReport}
+            disabled={isGeneratingReport}
+            className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Download Report
+            {isGeneratingReport ? (
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Generating...
+              </div>
+            ) : (
+              'Download Report'
+            )}
           </button>
+        </div>
+        
+        {/* Help Text */}
+        <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+          <h4 className="font-medium text-blue-900 mb-2">💡 What happens next?</h4>
+          <ul className="text-sm text-blue-800 space-y-1">
+            <li>• <strong>Return to Dashboard:</strong> Save your results and see updated scores</li>
+            <li>• <strong>Take Again:</strong> Retake the assessment to improve your score</li>
+            <li>• <strong>Download Report:</strong> Get a comprehensive PDF report for your records</li>
+          </ul>
         </div>
       </div>
     </div>
   );
 }
+
