@@ -1,0 +1,1 @@
+{"connected":true,"message":"Database connection successful","tables":{"user_profiles":"OK","advanced_fundability_assessments":"OK"},"environment":{"supabaseUrl":"Set","serviceKey":"Set"}}
