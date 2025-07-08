@@ -3,8 +3,11 @@
 import React from 'react';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { ScoreGauge } from './ScoreGauge';
-import { AssessmentHistory } from './AssessmentHistory';
 import { QuickStats } from './QuickStats';
+import { ScoreTrendChart } from './ScoreTrendChart';
+import { CategoryRadarChart } from './CategoryRadarChart';
+import { IndustryBenchmark } from './IndustryBenchmark';
+import { ImprovementTracker } from './ImprovementTracker';
 
 export function DashboardOverview() {
   const { userProfile, latestAssessment, stats, loading, error, refresh } = useDashboardData();
@@ -32,19 +35,21 @@ export function DashboardOverview() {
     );
   }
 
+  const categoryScores = latestAssessment?.category_scores || {};
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Welcome Header */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6 rounded-lg">
         <h1 className="text-2xl font-bold">
-          Welcome back, {userProfile?.name || 'User'}!
+          Welcome back, {userProfile?.name || 'User'}! 🚀
         </h1>
         <p className="mt-2 opacity-90">
           {userProfile?.business_name ? `Managing ${userProfile.business_name}` : 'Track your business fundability progress'}
         </p>
       </div>
 
-      {/* Quick Stats Grid */}
+      {/* Enhanced Quick Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <QuickStats
           title="Current Score"
@@ -69,11 +74,11 @@ export function DashboardOverview() {
         />
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Score Gauge */}
+      {/* Score Overview Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Current Score Gauge */}
         <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold mb-4">Fundability Score</h3>
+          <h3 className="text-lg font-semibold mb-4">Current Score</h3>
           <ScoreGauge
             score={stats.currentScore}
             size={200}
@@ -84,24 +89,36 @@ export function DashboardOverview() {
           </div>
         </div>
 
-        {/* Assessment History */}
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold mb-4">Assessment History</h3>
-          <AssessmentHistory
-            assessments={[]} // We'll populate this later
+        {/* Score Trend Chart */}
+        <div className="lg:col-span-2">
+          <ScoreTrendChart
+            data={[]} // Will be populated with real historical data
             loading={loading}
           />
         </div>
       </div>
 
-      {/* Recent Activity Placeholder */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h3 className="text-lg font-semibold mb-4">Recent Activity</h3>
-        <div className="text-gray-500 text-center py-8">
-          <p>Activity tracking coming soon...</p>
-          <p className="text-sm mt-2">We'll show your recent assessments, score changes, and recommendations here.</p>
-        </div>
+      {/* Analytics Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Category Performance Radar */}
+        <CategoryRadarChart
+          categoryScores={categoryScores}
+          loading={loading}
+        />
+
+        {/* Industry Benchmark */}
+        <IndustryBenchmark
+          userScore={stats.currentScore}
+          industry={userProfile?.business_name ? 'Technology' : 'Technology'}
+          loading={loading}
+        />
       </div>
+
+      {/* Improvement Actions */}
+      <ImprovementTracker
+        categoryScores={categoryScores}
+        loading={loading}
+      />
 
       {/* Quick Actions */}
       <div className="bg-white p-6 rounded-lg shadow">
@@ -109,17 +126,20 @@ export function DashboardOverview() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <button
             onClick={() => window.location.href = '/assessment'}
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center"
           >
+            <span className="mr-2">📊</span>
             Take New Assessment
           </button>
-          <button className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium">
+          <button className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center">
+            <span className="mr-2">💡</span>
             View Recommendations
           </button>
           <button
             onClick={() => window.print()}
-            className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors font-medium"
+            className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center justify-center"
           >
+            <span className="mr-2">📄</span>
             Download Report
           </button>
         </div>
@@ -128,7 +148,7 @@ export function DashboardOverview() {
   );
 }
 
-// Helper function - MOVED OUTSIDE the component
+// Helper function
 function getGrade(score: number): string {
   if (score >= 90) return 'A - Excellent';
   if (score >= 80) return 'B - Good';
