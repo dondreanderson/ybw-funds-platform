@@ -1,5 +1,5 @@
 'use client';
-
+import { UserService } from '@/lib/services';
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
 import type { AssessmentResponse } from '@/lib/types/core';
 
@@ -139,6 +139,8 @@ interface AssessmentContextType {
   calculateScore: () => void;
   completeAssessment: () => Promise<void>;
   resetAssessment: () => void;
+  saveAndUpdateDashboard: () => Promise<boolean>;
+  getReportData: () => any;
 }
 
 const AssessmentContext = createContext<AssessmentContextType | undefined>(undefined);
@@ -223,6 +225,75 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'RESET_ASSESSMENT' });
   };
 
+ const saveAndUpdateDashboard = async (): Promise<boolean> => {
+  try {
+    console.log('💾 Saving assessment and updating dashboard...');
+    dispatch({ type: 'SET_LOADING', loading: true });
+
+    // Save to localStorage immediately
+    const assessmentData = {
+      responses: state.responses,
+      currentScore: state.currentScore,
+      categoryScores: state.categoryScores,
+      completedAt: new Date().toISOString(),
+      questions: state.questions
+    };
+
+    localStorage.setItem('lastAssessmentResults', JSON.stringify(assessmentData));
+    console.log('✅ Saved to localStorage:', assessmentData);
+
+    // Try to save to database
+    try {
+      const { data: userProfile } = await UserService.getCurrentUserProfile();
+      
+      if (userProfile) {
+        console.log('👤 Updating user profile...');
+        await UserService.updateFundabilityScore(userProfile.id, state.currentScore);
+        await UserService.incrementAssessmentCount(userProfile.id);
+        console.log('✅ Database updated successfully');
+      }
+    } catch (dbError) {
+      console.warn('⚠️ Database update failed, but localStorage saved:', dbError);
+      // Continue anyway since we have localStorage
+    }
+
+    // Trigger multiple refresh mechanisms
+    console.log('🔔 Triggering dashboard refresh...');
+    
+    // Immediate refresh
+    window.dispatchEvent(new CustomEvent('dashboardRefresh'));
+    
+    // Delayed refresh to ensure localStorage is processed
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('dashboardRefresh'));
+    }, 100);
+
+    // Storage event for other tabs
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'lastAssessmentResults',
+      newValue: JSON.stringify(assessmentData)
+    }));
+
+    dispatch({ type: 'SET_LOADING', loading: false });
+    return true;
+  } catch (error) {
+    console.error('❌ Error saving assessment:', error);
+    dispatch({ type: 'SET_LOADING', loading: false });
+    return false;
+  }
+};
+
+
+const getReportData = () => {
+  return {
+    responses: state.responses,
+    currentScore: state.currentScore,
+    categoryScores: state.categoryScores,
+    questions: state.questions,
+    completedQuestions: Object.keys(state.responses).length
+  };
+};
+
   return (
     <AssessmentContext.Provider value={{
       state,
@@ -233,7 +304,9 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
       goToStep,
       calculateScore,
       completeAssessment,
-      resetAssessment
+      resetAssessment,
+      saveAndUpdateDashboard,
+      getReportData
     }}>
       {children}
     </AssessmentContext.Provider>
