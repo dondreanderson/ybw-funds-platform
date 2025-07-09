@@ -32,13 +32,29 @@ export class EnhancedOpportunityService extends OpportunityService {
   static async getUserProfile(userId: string): Promise<EnhancedUserProfile | null> {
     try {
       // Get user profile
+      const sessionUserId = userId; // This comes from your NextAuth session
       const { data: userProfile } = await supabase
         .from('user_profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
-      if (!userProfile) return null;
+      if (!userProfile) {
+      // Create basic profile for new users
+      const newProfile = {
+        id: sessionUserId,
+        email: 'user@example.com',
+        creditScore: 600, // Default starting score
+        timeInBusiness: 1,
+        annualRevenue: 100000,
+        industry: 'General',
+        businessStructure: 'LLC',
+        fundingNeeds: { amount: 50000, purpose: 'Working Capital', timeline: '30 days' },
+        currentTradeLines: [],
+        fundabilityScore: 60 // Default score
+      };
+      return newProfile;
+    }
 
       // Get business profile
       const { data: businessProfile } = await supabase
