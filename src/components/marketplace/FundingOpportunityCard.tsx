@@ -1,294 +1,291 @@
 'use client';
 
 import React, { useState } from 'react';
-import { FundingOpportunity, UserProfile } from '@/lib/services/opportunityService';
+import { FundingOpportunity } from '@/lib/services/opportunityService';
+import { EnhancedOpportunityService } from '@/lib/services/enhancedOpportunityService';
 
-interface FundingOpportunityCardProps {
-  opportunity: FundingOpportunity;
-  isSelected: boolean;
-  onCompareToggle: () => void;
-  userProfile: UserProfile;
+interface MatchAnalysis {
+  score: number;
+  strengths: string[];
+  concerns: string[];
+  recommendations: string[];
+  nextSteps: string[];
+  riskLevel: 'low' | 'medium' | 'high';
 }
 
-export function FundingOpportunityCard({ 
-  opportunity, 
-  isSelected, 
-  onCompareToggle, 
-  userProfile 
-}: FundingOpportunityCardProps) {
-  const [showDetails, setShowDetails] = useState(false);
+interface FundingOpportunityCardProps {
+  opportunity: FundingOpportunity & { matchAnalysis: MatchAnalysis };
+  userId: string;
+  onApply?: (opportunity: FundingOpportunity) => void;
+  onSave?: (opportunity: FundingOpportunity) => void;
+}
 
-  const getEligibilityColor = (score: number) => {
-    if (score >= 80) return 'bg-green-100 text-green-800';
-    if (score >= 60) return 'bg-yellow-100 text-yellow-800';
-    if (score >= 40) return 'bg-orange-100 text-orange-800';
-    return 'bg-red-100 text-red-800';
+export function FundingOpportunityCard({ opportunity, userId, onApply, onSave }: FundingOpportunityCardProps) {
+  const [expanded, setExpanded] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const getMatchGrade = (score: number) => {
+    if (score >= 90) return { grade: 'A+', color: 'text-green-600', bg: 'bg-green-50' };
+    if (score >= 80) return { grade: 'A', color: 'text-green-600', bg: 'bg-green-50' };
+    if (score >= 70) return { grade: 'B+', color: 'text-blue-600', bg: 'bg-blue-50' };
+    if (score >= 60) return { grade: 'B', color: 'text-blue-600', bg: 'bg-blue-50' };
+    if (score >= 50) return { grade: 'C', color: 'text-yellow-600', bg: 'bg-yellow-50' };
+    return { grade: 'D', color: 'text-red-600', bg: 'bg-red-50' };
   };
 
-  const getEligibilityText = (score: number) => {
-    if (score >= 80) return 'Excellent Match';
-    if (score >= 60) return 'Good Match';
-    if (score >= 40) return 'Fair Match';
-    return 'Poor Match';
-  };
-
-  const formatCurrency = (amount: number) => {
+  const formatAmount = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
+      maximumFractionDigits: 0
     }).format(amount);
   };
 
-  const getProductTypeIcon = (type: string) => {
-    const icons = {
-      'term_loan': '📋',
-      'line_of_credit': '💳',
-      'equipment_financing': '🏭',
-      'invoice_factoring': '📄',
-      'merchant_cash_advance': '💰',
-      'sba_loan': '🏛️'
-    };
-    return icons[type] || '💰';
+  const formatRate = (rate: number) => {
+    return `${rate.toFixed(1)}%`;
   };
 
-  const getProductTypeName = (type: string) => {
-    const names = {
-      'term_loan': 'Term Loan',
-      'line_of_credit': 'Line of Credit',
-      'equipment_financing': 'Equipment Financing',
-      'invoice_factoring': 'Invoice Factoring',
-      'merchant_cash_advance': 'Merchant Cash Advance',
-      'sba_loan': 'SBA Loan'
-    };
-    return names[type] || type;
+  const getRiskColor = (risk: string) => {
+    switch (risk) {
+      case 'low': return 'text-green-600 bg-green-50';
+      case 'medium': return 'text-yellow-600 bg-yellow-50';
+      case 'high': return 'text-red-600 bg-red-50';
+      default: return 'text-gray-600 bg-gray-50';
+    }
   };
+
+  const handleApply = async () => {
+    setLoading(true);
+    try {
+      await EnhancedOpportunityService.trackOpportunityApplication(userId, opportunity.id, 'funding');
+      if (onApply) onApply(opportunity);
+      // Open application URL in new tab
+      window.open(opportunity.applicationUrl, '_blank');
+    } catch (error) {
+      console.error('Error applying:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      if (onSave) onSave(opportunity);
+    } catch (error) {
+      console.error('Error saving:', error);
+    }
+  };
+
+  const handleView = async () => {
+    await EnhancedOpportunityService.trackOpportunityView(userId, opportunity.id, 'funding');
+    setExpanded(!expanded);
+  };
+
+  const matchGrade = getMatchGrade(opportunity.matchAnalysis.score);
 
   return (
-    <div className={`bg-white rounded-lg shadow-lg border-2 transition-all ${
-      isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-    }`}>
+    <div className="bg-white rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
       {/* Header */}
-      <div className="p-6 border-b border-gray-200">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="flex-shrink-0">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <span className="text-2xl">{getProductTypeIcon(opportunity.productType)}</span>
-              </div>
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold text-gray-900">{opportunity.lenderName}</h3>
-              <p className="text-gray-600">{getProductTypeName(opportunity.productType)}</p>
-              <div className="flex items-center mt-1">
-                <div className="flex items-center">
-                  {[...Array(5)].map((_, i) => (
-                    <span
-                      key={i}
-                      className={`text-sm ${
-                        i < Math.floor(opportunity.rating) ? 'text-yellow-400' : 'text-gray-300'
-                      }`}
-                    >
-                      ⭐
-                    </span>
-                  ))}
-                </div>
-                <span className="text-sm text-gray-500 ml-2">
-                  {opportunity.rating} ({opportunity.reviewCount} reviews)
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center space-x-3">
-            {opportunity.promoted && (
-              <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs font-medium">
-                Featured
-              </span>
-            )}
-            <span className={`px-3 py-1 rounded-full text-xs font-medium ${getEligibilityColor(opportunity.eligibilityScore)}`}>
-              {getEligibilityText(opportunity.eligibilityScore)}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Key Details */}
       <div className="p-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div>
-            <div className="text-sm text-gray-500">Loan Amount</div>
-            <div className="font-semibold text-gray-900">
-              {formatCurrency(opportunity.minAmount)} - {formatCurrency(opportunity.maxAmount)}
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <h3 className="text-xl font-semibold text-gray-900">{opportunity.lenderName}</h3>
+              {opportunity.promoted && (
+                <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                  Featured
+                </span>
+              )}
             </div>
+            <p className="text-gray-600 capitalize">{opportunity.productType.replace('_', ' ')}</p>
+          </div>
+          
+          {/* Match Score */}
+          <div className={`${matchGrade.bg} ${matchGrade.color} px-3 py-2 rounded-lg text-center`}>
+            <div className="text-lg font-bold">{matchGrade.grade}</div>
+            <div className="text-xs">Match</div>
+          </div>
+        </div>
+
+        {/* Key Details */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+          <div>
+            <p className="text-sm text-gray-500">Amount</p>
+            <p className="font-semibold">
+              {formatAmount(opportunity.minAmount)} - {formatAmount(opportunity.maxAmount)}
+            </p>
           </div>
           <div>
-            <div className="text-sm text-gray-500">Interest Rate</div>
-            <div className="font-semibold text-gray-900">
-              {opportunity.interestRateMin}% - {opportunity.interestRateMax}%
-            </div>
+            <p className="text-sm text-gray-500">Rate</p>
+            <p className="font-semibold">
+              {formatRate(opportunity.interestRateMin)} - {formatRate(opportunity.interestRateMax)}
+            </p>
           </div>
           <div>
-            <div className="text-sm text-gray-500">Term</div>
-            <div className="font-semibold text-gray-900">
+            <p className="text-sm text-gray-500">Term</p>
+            <p className="font-semibold">
               {opportunity.termMonthsMin} - {opportunity.termMonthsMax} months
-            </div>
+            </p>
           </div>
           <div>
-            <div className="text-sm text-gray-500">Approval Time</div>
-            <div className="font-semibold text-gray-900">{opportunity.avgApprovalTime}</div>
+            <p className="text-sm text-gray-500">Approval Time</p>
+            <p className="font-semibold">{opportunity.avgApprovalTime}</p>
           </div>
         </div>
 
-        <p className="text-gray-600 mb-4">{opportunity.description}</p>
+        {/* Risk Level */}
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-sm text-gray-500">Risk Level:</span>
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRiskColor(opportunity.matchAnalysis.riskLevel)}`}>
+            {opportunity.matchAnalysis.riskLevel.toUpperCase()}
+          </span>
+        </div>
 
+        {/* Quick Highlights */}
         <div className="mb-4">
-          <div className="text-sm font-medium text-gray-700 mb-2">Why this matches you:</div>
-          <p className="text-sm text-blue-600">{opportunity.recommendationReason}</p>
+          {opportunity.matchAnalysis.strengths.slice(0, 2).map((strength, index) => (
+            <div key={index} className="flex items-center text-green-700 text-sm mb-1">
+              <span className="mr-2">✓</span>
+              {strength}
+            </div>
+          ))}
         </div>
 
-        {/* Requirements Check */}
-        <div className="mb-6">
-          <div className="text-sm font-medium text-gray-700 mb-2">Requirements Check:</div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            <div className="flex items-center">
-              <span className={`text-sm ${
-                userProfile.creditScore >= opportunity.minCreditScore ? 'text-green-600' : 'text-red-600'
-              }`}>
-                {userProfile.creditScore >= opportunity.minCreditScore ? '✅' : '❌'}
-              </span>
-              <span className="text-sm text-gray-700 ml-2">
-                Credit Score: {opportunity.minCreditScore}+ (You have {userProfile.creditScore})
-              </span>
-            </div>
-            <div className="flex items-center">
-              <span className={`text-sm ${
-                userProfile.timeInBusiness >= opportunity.minTimeInBusiness ? 'text-green-600' : 'text-red-600'
-              }`}>
-                {userProfile.timeInBusiness >= opportunity.minTimeInBusiness ? '✅' : '❌'}
-              </span>
-              <span className="text-sm text-gray-700 ml-2">
-                Time in Business: {opportunity.minTimeInBusiness}+ months
-              </span>
-            </div>
-            <div className="flex items-center">
-              <span className={`text-sm ${
-                userProfile.annualRevenue >= opportunity.minAnnualRevenue ? 'text-green-600' : 'text-red-600'
-              }`}>
-                {userProfile.annualRevenue >= opportunity.minAnnualRevenue ? '✅' : '❌'}
-              </span>
-              <span className="text-sm text-gray-700 ml-2">
-                Annual Revenue: {formatCurrency(opportunity.minAnnualRevenue)}+
-              </span>
-            </div>
-            <div className="flex items-center">
-              <span className="text-sm text-gray-500">
-                {opportunity.requiresPersonalGuarantee ? '⚠️' : '✅'}
-              </span>
-              <span className="text-sm text-gray-700 ml-2">
-                {opportunity.requiresPersonalGuarantee ? 'Personal Guarantee Required' : 'No Personal Guarantee'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Features */}
-        <div className="mb-6">
-          <div className="text-sm font-medium text-gray-700 mb-2">Key Features:</div>
-          <div className="flex flex-wrap gap-2">
-            {opportunity.features.map((feature, index) => (
-              <span
-                key={index}
-                className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs"
-              >
-                {feature}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex space-x-4">
+        {/* Actions */}
+        <div className="flex gap-3">
           <button
-            onClick={() => window.open(opportunity.applicationUrl, '_blank')}
-            className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            onClick={handleApply}
+            disabled={loading}
+            className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
           >
-            Apply Now
+            {loading ? 'Applying...' : 'Apply Now'}
           </button>
           <button
-            onClick={() => setShowDetails(!showDetails)}
-            className="bg-gray-200 text-gray-700 py-3 px-6 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+            onClick={handleSave}
+            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
           >
-            {showDetails ? 'Hide Details' : 'More Details'}
+            Save
           </button>
           <button
-            onClick={onCompareToggle}
-            className={`py-3 px-6 rounded-lg font-medium transition-colors ${
-              isSelected 
-                ? 'bg-purple-600 text-white hover:bg-purple-700' 
-                : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
-            }`}
+            onClick={handleView}
+            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
           >
-            {isSelected ? 'Remove' : 'Compare'}
+            {expanded ? 'Less' : 'Details'}
           </button>
         </div>
-
-        {/* Expanded Details */}
-        {showDetails && (
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-medium text-gray-900 mb-3">Fees & Costs</h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Origination Fee:</span>
-                    <span className="text-sm font-medium">
-                      {opportunity.fees.originationFee ? `${opportunity.fees.originationFee}%` : 'None'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Maintenance Fee:</span>
-                    <span className="text-sm font-medium">
-                      {opportunity.fees.maintenanceFee ? `$${opportunity.fees.maintenanceFee}` : 'None'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Early Payment Penalty:</span>
-                    <span className="text-sm font-medium">
-                      {opportunity.fees.earlyPaymentPenalty ? 'Yes' : 'No'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <h4 className="font-medium text-gray-900 mb-3">Requirements</h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Collateral:</span>
-                    <span className="text-sm font-medium">
-                      {opportunity.requiresCollateral ? 'Required' : 'Not Required'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Personal Guarantee:</span>
-                    <span className="text-sm font-medium">
-                      {opportunity.requiresPersonalGuarantee ? 'Required' : 'Not Required'}
-                    </span>
-                  </div>
-                  {opportunity.industryRestrictions.length > 0 && (
-                    <div>
-                      <span className="text-sm text-gray-600">Industry Restrictions:</span>
-                      <div className="text-sm font-medium">
-                        {opportunity.industryRestrictions.join(', ')}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Expanded Details */}
+      {expanded && (
+        <div className="border-t border-gray-200 p-6 bg-gray-50">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Eligibility Analysis */}
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-3">Eligibility Analysis</h4>
+              
+              {/* Strengths */}
+              {opportunity.matchAnalysis.strengths.length > 0 && (
+                <div className="mb-4">
+                  <h5 className="text-sm font-medium text-green-700 mb-2">Strengths</h5>
+                  <ul className="space-y-1">
+                    {opportunity.matchAnalysis.strengths.map((strength, index) => (
+                      <li key={index} className="text-sm text-green-600 flex items-start">
+                        <span className="mr-2 mt-0.5">✓</span>
+                        {strength}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Concerns */}
+              {opportunity.matchAnalysis.concerns.length > 0 && (
+                <div className="mb-4">
+                  <h5 className="text-sm font-medium text-red-700 mb-2">Potential Concerns</h5>
+                  <ul className="space-y-1">
+                    {opportunity.matchAnalysis.concerns.map((concern, index) => (
+                      <li key={index} className="text-sm text-red-600 flex items-start">
+                        <span className="mr-2 mt-0.5">⚠</span>
+                        {concern}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            {/* Requirements & Features */}
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-3">Requirements & Features</h4>
+              
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm text-gray-600">Minimum Credit Score: <span className="font-medium">{opportunity.minCreditScore}</span></p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Time in Business: <span className="font-medium">{opportunity.minTimeInBusiness} months</span></p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Minimum Revenue: <span className="font-medium">{formatAmount(opportunity.minAnnualRevenue)}</span></p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Personal Guarantee: <span className="font-medium">{opportunity.requiresPersonalGuarantee ? 'Required' : 'Not Required'}</span></p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Collateral: <span className="font-medium">{opportunity.requiresCollateral ? 'Required' : 'Not Required'}</span></p>
+                </div>
+              </div>
+
+              {/* Features */}
+              {opportunity.features.length > 0 && (
+                <div className="mt-4">
+                  <h5 className="text-sm font-medium text-gray-700 mb-2">Key Features</h5>
+                  <ul className="space-y-1">
+                    {opportunity.features.map((feature, index) => (
+                      <li key={index} className="text-sm text-gray-600 flex items-center">
+                        <span className="mr-2">•</span>
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Recommendations */}
+          {opportunity.matchAnalysis.recommendations.length > 0 && (
+            <div className="mt-6 pt-4 border-t border-gray-300">
+              <h4 className="font-semibold text-gray-900 mb-3">Recommendations</h4>
+              <ul className="space-y-2">
+                {opportunity.matchAnalysis.recommendations.map((recommendation, index) => (
+                  <li key={index} className="text-sm text-blue-600 flex items-start">
+                    <span className="mr-2 mt-0.5">💡</span>
+                    {recommendation}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Next Steps */}
+          {opportunity.matchAnalysis.nextSteps.length > 0 && (
+            <div className="mt-4">
+              <h4 className="font-semibold text-gray-900 mb-3">Next Steps</h4>
+              <ol className="space-y-2">
+                {opportunity.matchAnalysis.nextSteps.map((step, index) => (
+                  <li key={index} className="text-sm text-gray-700 flex items-start">
+                    <span className="mr-2 mt-0.5 bg-blue-100 text-blue-800 rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium">
+                      {index + 1}
+                    </span>
+                    {step}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
