@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react'; 
-
+import { MarketplaceDashboard } from '@/components/marketplace/MarketplaceDashboard';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { ScoreGauge } from './ScoreGauge';
 import { QuickStats } from './QuickStats';
