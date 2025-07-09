@@ -100,7 +100,7 @@ export class EnhancedOpportunityService extends OpportunityService {
         purpose: 'Working Capital',
         timeline: '30 days'
       },
-      currentTradeLines: [],
+      currentTradeLines: [], // Empty array means good candidate for building credit
       fundabilityScore: 75
     };
   }
@@ -114,8 +114,30 @@ export class EnhancedOpportunityService extends OpportunityService {
   }
 
   static async getPersonalizedTradelineOpportunities(userId: string): Promise<(TradeLineOpportunity & { matchAnalysis: MatchAnalysis })[]> {
-    const userProfile = await this.getUserProfile(userId);
-    if (!userProfile) return [];
+    //const userProfile = await this.getUserProfile(userId);
+    let userProfile = await this.getUserProfile(userId);
+    //if (!userProfile) return [];
+
+    // TEMPORARY: If no profile found, use demo profile (same as funding)
+  if (!userProfile) {
+    console.log('🔧 No user profile found for tradelines, using demo data');
+    userProfile = {
+      id: userId,
+      email: 'demo@ybwfunds.com',
+      creditScore: 650,
+      timeInBusiness: 2,
+      annualRevenue: 250000,
+      industry: 'Technology',
+      businessStructure: 'LLC',
+      fundingNeeds: {
+        amount: 100000,
+        purpose: 'Working Capital',
+        timeline: '30 days'
+      },
+      currentTradeLines: [], // Empty array means good candidate for building credit
+      fundabilityScore: 75
+    };
+  }
 
     const opportunities = this.getMatchedTradeLineOpportunities(userProfile);
 
