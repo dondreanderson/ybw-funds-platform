@@ -1,2 +1,12 @@
 node_modules
 .vercel
+.env.local
+.env.production
+.env.development
+.env.staging
+
+# Environment files
+.env.local
+.env.production
+.env.development
+.env.staging
