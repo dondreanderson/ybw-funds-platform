@@ -1,7 +1,8 @@
 {
-  "/marketplace/page": "app/marketplace/page.js",
   "/auth/signin/page": "app/auth/signin/page.js",
+  "/marketplace/page": "app/marketplace/page.js",
   "/dashboard/page": "app/dashboard/page.js",
+  "/api/marketplace/apply/route": "app/api/marketplace/apply/route.js",
   "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
   "/api/marketplace/opportunities/route": "app/api/marketplace/opportunities/route.js"
 }
