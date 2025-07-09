@@ -14,5 +14,24 @@
   "..\\node_modules\\@supabase\\storage-js\\dist\\module\\lib\\helpers.js -> @supabase/node-fetch": {
     "id": 80485,
     "files": []
+  },
+  "..\\node_modules\\jspdf\\dist\\jspdf.es.min.js -> canvg": {
+    "id": 12396,
+    "files": [
+      "static/chunks/bc98253f.2a86d0955713b458.js",
+      "static/chunks/969.615b5b52f2ffa4a7.js"
+    ]
+  },
+  "..\\node_modules\\jspdf\\dist\\jspdf.es.min.js -> dompurify": {
+    "id": 18848,
+    "files": [
+      "static/chunks/848.7ae3886ad9fcb532.js"
+    ]
+  },
+  "..\\node_modules\\jspdf\\dist\\jspdf.es.min.js -> html2canvas": {
+    "id": 6807,
+    "files": [
+      "static/chunks/ad2866b8.470e6af3964e3753.js"
+    ]
   }
 }
