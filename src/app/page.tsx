@@ -7,7 +7,6 @@ import { useEffect } from 'react'
 import Link from 'next/link'
 import AIAssessmentWidget from '@/components/ai/AIAssessmentWidget'
 
-import Link from 'next/link' // ✅ Add this import
 
 
 export default function HomePage() {

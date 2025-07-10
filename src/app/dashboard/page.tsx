@@ -1,8 +1,6 @@
 // src/app/dashboard/page.tsx
 
-import EnhancedDashboard from '@/components/dashboard/EnhancedDashboard'
 import { DashboardOverview } from '@/components/dashboard/DashboardOverview';
-import { UserMenu } from '@/components/layout/UserMenu';
 import { DashboardOverview } from '@/components/dashboard/DashboardOverview';
 
 
