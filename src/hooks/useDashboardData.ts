@@ -1,23 +1,22 @@
+'use client'
 
-import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useState, useEffect } from 'react'
 
-interface DashboardData {
-  userProfile: any;
-  latestAssessment: any;
+export interface DashboardData {
+  userProfile: any
+  latestAssessment: any
   stats: {
-    currentScore: number;
-    scoreChange: number;
-    totalAssessments: number;
-    lastAssessmentDate: string | null;
-  };
-  loading: boolean;
-  error: string | null;
-  refresh: () => void;
+    currentScore: number
+    scoreChange: number
+    totalAssessments: number
+    lastAssessmentDate: string | null
+  }
+  loading: boolean
+  error: string | null
+  refresh: () => void
 }
 
 export function useDashboardData(): DashboardData {
-  const { data: session } = useSession();
   const [data, setData] = useState<DashboardData>({
     userProfile: null,
     latestAssessment: null,
@@ -27,56 +26,28 @@ export function useDashboardData(): DashboardData {
       totalAssessments: 0,
       lastAssessmentDate: null,
     },
-    loading: true,
+    loading: false,
     error: null,
     refresh: () => {},
-  });
-
-  const fetchDashboardData = async () => {
-    if (!session?.user?.email) return;
-
-    try {
-      setData(prev => ({ ...prev, loading: true, error: null }));
-      
-      const response = await fetch('/api/dashboard', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch dashboard data');
-      }
-
-      const result = await response.json();
-      
-      setData(prev => ({
-        ...prev,
-        userProfile: result.userProfile,
-        latestAssessment: result.latestAssessment,
-        stats: result.stats,
-        loading: false,
-      }));
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      setData(prev => ({
-        ...prev,
-        error: 'Failed to load dashboard data',
-        loading: false,
-      }));
-    }
-  };
-
-  useEffect(() => {
-    fetchDashboardData();
-  }, [session]);
+  })
 
   const refresh = () => {
-    fetchDashboardData();
-  };
+    // Mock data for now
+    setData(prev => ({
+      ...prev,
+      stats: {
+        currentScore: 75,
+        scoreChange: 5,
+        totalAssessments: 3,
+        lastAssessmentDate: new Date().toISOString(),
+      },
+      loading: false,
+    }))
+  }
 
-  setData(prev => ({ ...prev, refresh }));
+  useEffect(() => {
+    refresh()
+  }, [])
 
-  return data;
+  return { ...data, refresh }
 }
