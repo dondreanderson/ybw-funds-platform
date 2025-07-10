@@ -77,10 +77,10 @@ export function EnhancedDashboard() {
               <OverviewTab data={dashboardData} />
             </Tab.Panel>
             <Tab.Panel>
-              <AssessmentTab />
+              <div className="p-4 text-center text-gray-500">Assessment functionality coming soon</div>
             </Tab.Panel>
             <Tab.Panel>
-              <MarketplaceTab />
+              <div className="p-4 text-center text-gray-500">Marketplace functionality coming soon</div>
             </Tab.Panel>
             <Tab.Panel>
               <ReportsTab />
