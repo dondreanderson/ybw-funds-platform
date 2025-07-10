@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { FundingOpportunityCard } from './FundingOpportunityCard';
-import { TradelineOpportunityCard } from './TradelineOpportunityCard';
+// TradelineOpportunityCard component temporarily disabled
 import { FundingOpportunity, TradeLineOpportunity } from '@/lib/services/opportunityService';
 
 interface MatchAnalysis {
