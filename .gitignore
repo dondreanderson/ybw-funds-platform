@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Dependencies
 node_modules/
 .pnp
@@ -87,3 +88,17 @@ Thumbs.db
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+=======
+node_modules
+.vercel
+.env.local
+.env.production
+.env.development
+.env.staging
+
+# Environment files
+.env.local
+.env.production
+.env.development
+.env.staging
+>>>>>>> 9027a76eb338fbaa421c2127d2ecdad194f2bf16
