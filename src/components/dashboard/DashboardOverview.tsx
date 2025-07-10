@@ -1,3 +1,6 @@
+'use client'
+
+import { useRouter } from 'next/navigation'
 'use client';
 
 import React, { useState } from 'react'; 
@@ -12,6 +15,7 @@ import { ImprovementTracker } from './ImprovementTracker';
 import { ReportGenerator } from '@/components/reports/ReportGenerator';
 
 export function DashboardOverview() {
+  const router = useRouter()
   const { userProfile, latestAssessment, stats, loading, error, refresh } = useDashboardData();
  const categoryScores = latestAssessment?.category_scores || {};
   const [showReportGenerator, setShowReportGenerator] = useState(false);
