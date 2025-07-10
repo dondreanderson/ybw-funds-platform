@@ -1,19 +1,14 @@
 {
+  "name": "ybw-funds-platform",
+  "version": "0.1.0",
+  "private": true,
   "dependencies": {
     "@headlessui/react": "^2.2.4",
-<<<<<<< HEAD
     "@heroicons/react": "^2.2.0",
     "@hookform/resolvers": "^3.10.0",
     "@react-pdf/renderer": "^4.3.0",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.50.4",
-=======
-    "@hookform/resolvers": "^3.10.0",
-    "@react-pdf/renderer": "^4.3.0",
-    "@supabase/ssr": "^0.6.1",
-    "@supabase/supabase-js": "^2.50.3",
-    "@types/node": "^20.8.0",
->>>>>>> 9027a76eb338fbaa421c2127d2ecdad194f2bf16
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "autoprefixer": "^10.4.0",
@@ -31,37 +26,26 @@
     "react": "^18.2.0",
     "react-chartjs-2": "^5.3.0",
     "react-dom": "^18.2.0",
-<<<<<<< HEAD
     "react-hook-form": "^7.60.0",
-=======
-    "react-hook-form": "^7.59.0",
->>>>>>> 9027a76eb338fbaa421c2127d2ecdad194f2bf16
     "react-hot-toast": "^2.5.2",
     "react-pdf": "^10.0.1",
     "recharts": "^2.15.4",
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^3.3.0",
     "typescript": "^5.2.0",
-<<<<<<< HEAD
     "zod": "^3.25.76"
-  },
-  "scripts": {
-    "dev": "next dev -p 3500",
-    "build": "next build",
-    "start": "next start -p 3500",
-    "lint": "next lint"
   },
   "devDependencies": {
     "@types/node": "^24.0.12",
     "plaid": "^36.0.0"
-=======
-    "zod": "^3.25.73"
   },
   "scripts": {
     "dev": "next dev -p 3500",
     "build": "next build",
     "start": "next start -p 3500",
     "lint": "next lint"
->>>>>>> 9027a76eb338fbaa421c2127d2ecdad194f2bf16
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
