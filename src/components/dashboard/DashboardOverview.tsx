@@ -129,11 +129,8 @@ export function DashboardOverview() {
        <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
     <button
-<<<<<<< HEAD
       onClick={() => router.push('/assessment')}
-=======
-      onClick={() => window.location.href = '/assessment'}
->>>>>>> 9027a76eb338fbaa421c2127d2ecdad194f2bf16
+
       className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center"
     >
       <span className="mr-2">📊</span>

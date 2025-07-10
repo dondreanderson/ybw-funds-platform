@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import type { Assessment, CategoryAssessment } from '@/lib/types/database'
@@ -394,7 +394,7 @@ export async function PUT(req: NextRequest) {
         JSON.stringify({ error: 'Failed to update assessment' }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       )
-=======
+
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
@@ -731,12 +731,12 @@ export async function GET(request: NextRequest) {
         { error: 'Failed to retrieve assessments' },
         { status: 500 }
       );
->>>>>>> 9027a76eb338fbaa421c2127d2ecdad194f2bf16
+
     }
 
     return NextResponse.json({
       success: true,
-<<<<<<< HEAD
+
       data: updatedAssessment
     })
 
@@ -792,7 +792,7 @@ export async function DELETE(req: NextRequest) {
       JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     )
-=======
+
       data
     });
 
@@ -802,6 +802,6 @@ export async function DELETE(req: NextRequest) {
       { error: 'Internal server error' },
       { status: 500 }
     );
->>>>>>> 9027a76eb338fbaa421c2127d2ecdad194f2bf16
+
   }
 }

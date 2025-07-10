@@ -1,6 +1,5 @@
 'use client';
 
-<<<<<<< HEAD
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSession } from 'next-auth/react';
@@ -303,7 +302,7 @@ export function AssessmentWizard() {
     </div>
   );
 }
-=======
+
 import React, { useEffect, useState } from 'react';
 import { useAssessment } from '@/contexts/AssessmentContext';
 import { assessmentQuestions } from '@/data/assessmentQuestions';
@@ -410,4 +409,4 @@ export function AssessmentWizard() {
     </div>
   );
 }
->>>>>>> 9027a76eb338fbaa421c2127d2ecdad194f2bf16
+

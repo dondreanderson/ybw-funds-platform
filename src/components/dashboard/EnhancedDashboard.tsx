@@ -1,6 +1,5 @@
 'use client';
 
-<<<<<<< HEAD
 import React, { useState } from 'react';
 import { Tab } from '@headlessui/react';
 import { 
@@ -208,7 +207,7 @@ function OverviewTab({ data }: { data: DashboardData | null }) {
                 Digital presence improved
               </span>
               <span className="text-xs text-gray-400">2 weeks ago</span>
-=======
+
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { User, AdvancedAssessmentData } from '../../types/common';
@@ -469,12 +468,12 @@ const EnhancedDashboard: React.FC = () => {
                   {(dashboardStats?.improvement || 0) >= 0 ? '+' : ''}{dashboardStats?.improvement || 0}
                 </dd>
               </dl>
->>>>>>> 9027a76eb338fbaa421c2127d2ecdad194f2bf16
+
             </div>
           </div>
         </div>
       </div>
-<<<<<<< HEAD
+
     </div>
   );
 }
@@ -555,8 +554,6 @@ function ActionButton({
 }
 
 // Export as default
-=======
-
       {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Latest Assessment */}
@@ -681,5 +678,4 @@ function ActionButton({
   );
 };
 
->>>>>>> 9027a76eb338fbaa421c2127d2ecdad194f2bf16
 export default EnhancedDashboard;

@@ -3,24 +3,24 @@
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
-<<<<<<< HEAD
+
 import Link from 'next/link'
 import AIAssessmentWidget from '@/components/ai/AIAssessmentWidget'
-=======
+
 import Link from 'next/link' // ✅ Add this import
->>>>>>> 9027a76eb338fbaa421c2127d2ecdad194f2bf16
+
 
 export default function HomePage() {
   const { data: session, status } = useSession()
   const router = useRouter()
 
   useEffect(() => {
-<<<<<<< HEAD
+
     if (status === 'loading') return
 
     if (session) {
       router.push('/dashboard')
-=======
+
     if (status === 'loading') return // Still loading
 
     if (session) {
@@ -29,7 +29,7 @@ export default function HomePage() {
     } else {
       // User is not authenticated, show landing page instead of redirect
       return
->>>>>>> 9027a76eb338fbaa421c2127d2ecdad194f2bf16
+
     }
   }, [session, status, router])
 
@@ -42,24 +42,24 @@ export default function HomePage() {
   }
 
   if (!session) {
-<<<<<<< HEAD
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           {/* Hero Section */}
           <div className="text-center mb-16">
-=======
+
     // Show landing page for non-authenticated users
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="text-center">
->>>>>>> 9027a76eb338fbaa421c2127d2ecdad194f2bf16
+
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
               YBW Funds Platform
             </h1>
             <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-<<<<<<< HEAD
+
               AI-Powered Business Credit & Funding Platform with Intelligent Assessments
             </p>
             
@@ -115,7 +115,7 @@ export default function HomePage() {
               }} 
             />
           </div>
-=======
+
               Business Credit & Funding Platform
             </p>
             
@@ -134,7 +134,7 @@ export default function HomePage() {
               </Link>
             </div>
           </div>
->>>>>>> 9027a76eb338fbaa421c2127d2ecdad194f2bf16
+
         </div>
       </div>
     )
@@ -149,7 +149,6 @@ export default function HomePage() {
     </div>
   )
 }
-<<<<<<< HEAD
 
 function FeatureCard({ icon, title, description }: {
   icon: string
@@ -164,5 +163,4 @@ function FeatureCard({ icon, title, description }: {
     </div>
   )
 }
-=======
->>>>>>> 9027a76eb338fbaa421c2127d2ecdad194f2bf16
+

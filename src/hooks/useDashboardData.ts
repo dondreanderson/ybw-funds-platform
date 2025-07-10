@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 
@@ -80,7 +80,7 @@ export function useDashboardData(): DashboardData {
 
   return data;
 }
-=======
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -295,4 +295,4 @@ const loadDashboardData = async () => {
 
   return { ...data, refresh };
 }
->>>>>>> 9027a76eb338fbaa421c2127d2ecdad194f2bf16
+
